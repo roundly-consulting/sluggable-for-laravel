@@ -34,7 +34,8 @@ it('compares verbatim when the manual policy keeps bytes', function (): void {
     definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->manual(ManualSlugPolicy::Verbatim));
     Article::query()->create(['slug' => 'Exact']);
 
-    expect(passes(['slug' => 'exact'], ['slug' => [UniqueSlug::for(Article::class)]]))->toBeTrue()
+    // MySQL string columns compare in their case-insensitive collation, like their unique index.
+    expect(passes(['slug' => 'exact'], ['slug' => [UniqueSlug::for(Article::class)]]))->toBe(! onDriver('mysql', 'mariadb'))
         ->and(passes(['slug' => 'Exact'], ['slug' => [UniqueSlug::for(Article::class)]]))->toBeFalse();
 });
 
