@@ -8,6 +8,7 @@ use RoundlyConsulting\Sluggable\Definitions\SlugDefinition;
 use RoundlyConsulting\Sluggable\Exceptions\InvalidLocaleException;
 use RoundlyConsulting\Sluggable\Exceptions\InvalidSlugDefinitionException;
 use RoundlyConsulting\Sluggable\Exceptions\SlugGenerationException;
+use RoundlyConsulting\Sluggable\Facades\Slugs;
 use RoundlyConsulting\Sluggable\Rules\UniqueSlug;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\Article;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\LocalizedPage;
@@ -22,7 +23,7 @@ it('refuses a hostile column in scopes', function (): void {
 })->throws(InvalidSlugDefinitionException::class);
 
 it('bounds a five megabyte source', function (): void {
-    $slug = RoundlyConsulting\Sluggable\Facades\Slugs::generate(new Article(['name' => str_repeat('word ', 1_000_000)]));
+    $slug = Slugs::generate(new Article(['name' => str_repeat('word ', 1_000_000)]));
 
     expect(mb_strlen($slug))->toBeLessThanOrEqual(255);
 });
