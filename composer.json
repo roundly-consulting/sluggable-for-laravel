@@ -1,11 +1,17 @@
 {
-    "name": "roundly-consulting/package-template-for-laravel",
-    "description": "TODO: replace with a one-line description of the new package.",
+    "name": "roundly-consulting/sluggable-for-laravel",
+    "description": "Single- and multi-language (json/jsonb locale-map) slugs for Eloquent: multiple columns per model, scoped per-locale uniqueness with engine-native indexes, locale-aware route binding, SEO slug history — native, zero third-party deps.",
     "keywords": [
         "roundly-consulting",
-        "laravel"
+        "laravel",
+        "slug",
+        "sluggable",
+        "i18n",
+        "jsonb",
+        "route-model-binding",
+        "seo"
     ],
-    "homepage": "https://github.com/roundly-consulting/package-template-for-laravel",
+    "homepage": "https://github.com/roundly-consulting/sluggable-for-laravel",
     "license": "MIT",
     "authors": [
         {
@@ -15,6 +21,18 @@
         }
     ],
     "repositories": [
+        {
+            "type": "path",
+            "url": "../enums-for-laravel*",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/roundly-consulting/enums-for-laravel",
+            "no-api": true
+        },
         {
             "type": "path",
             "url": "../package-toolkit-for-laravel*",
@@ -42,7 +60,18 @@
     ],
     "require": {
         "php": "^8.4",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "illuminate/bus": "^12.0|^13.0",
+        "illuminate/console": "^12.0|^13.0",
         "illuminate/contracts": "^12.0|^13.0",
+        "illuminate/database": "^12.0|^13.0",
+        "illuminate/http": "^12.0|^13.0",
+        "illuminate/queue": "^12.0|^13.0",
+        "illuminate/routing": "^12.0|^13.0",
+        "illuminate/support": "^12.0|^13.0",
+        "illuminate/validation": "^12.0|^13.0",
+        "roundly-consulting/enums-for-laravel": "@dev",
         "roundly-consulting/package-toolkit-for-laravel": "@dev"
     },
     "require-dev": {
@@ -56,14 +85,19 @@
         "phpstan/extension-installer": "^1.4",
         "roundly-consulting/testing-for-laravel": "@dev"
     },
+    "suggest": {
+        "ext-intl": "Unicode NFKC normalisation of slug sources in unicode() mode (skipped when absent).",
+        "roundly-consulting/translatable-for-laravel": "Locale-map attributes; binds sluggable's SlugLocales to its SupportedLocales."
+    },
     "autoload": {
         "psr-4": {
-            "RoundlyConsulting\\PackageTemplate\\": "src"
+            "RoundlyConsulting\\Sluggable\\": "src/",
+            "RoundlyConsulting\\Sluggable\\Database\\Factories\\": "database/factories/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "RoundlyConsulting\\PackageTemplate\\Tests\\": "tests"
+            "RoundlyConsulting\\Sluggable\\Tests\\": "tests"
         }
     },
     "scripts": {
@@ -83,7 +117,15 @@
     "extra": {
         "laravel": {
             "providers": [
-                "RoundlyConsulting\\PackageTemplate\\PackageTemplateServiceProvider"
+                "RoundlyConsulting\\Sluggable\\SluggableServiceProvider"
+            ],
+            "aliases": {
+                "Slugs": "RoundlyConsulting\\Sluggable\\Facades\\Slugs"
+            }
+        },
+        "phpstan": {
+            "includes": [
+                "extension.neon"
             ]
         }
     },

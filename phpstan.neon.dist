@@ -1,8 +1,13 @@
+includes:
+    - extension.neon
+
 parameters:
     level: 7
     paths:
         - src
         - config
+        - database
+        - tests/PHPStan
     # This package ships its own config/ dir; env() is correct there.
     configDirectories:
         - config

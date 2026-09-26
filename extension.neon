@@ -1,0 +1,5 @@
+services:
+    -
+        class: RoundlyConsulting\Sluggable\PHPStan\BlueprintSlugMacrosExtension
+        tags:
+            - phpstan.broker.methodsClassReflectionExtension
