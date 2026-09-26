@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use RoundlyConsulting\Sluggable\Definitions\SlugDefinition;
+use RoundlyConsulting\Sluggable\Enums\EmptySourcePolicy;
 use RoundlyConsulting\Sluggable\Enums\ManualSlugPolicy;
 use RoundlyConsulting\Sluggable\Enums\UpdatePolicy;
 use RoundlyConsulting\Sluggable\Exceptions\SlugAlreadyTakenException;
@@ -10,6 +11,7 @@ use RoundlyConsulting\Sluggable\Exceptions\SlugGenerationException;
 use RoundlyConsulting\Sluggable\Exceptions\SlugLockedException;
 use RoundlyConsulting\Sluggable\Facades\Slugs;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\Article;
+use RoundlyConsulting\Sluggable\Tests\Fixtures\LocalizedPage;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\ScopedItem;
 
 it('keeps an existing slug on update by default (IfEmpty)', function (): void {
@@ -97,6 +99,30 @@ it('normalises and uniquifies manual slugs (Normalize)', function (): void {
 
 it('falls back to generation when a manual slug normalises to nothing', function (): void {
     expect(Article::query()->create(['name' => 'From Name', 'slug' => '###'])->slug)->toBe('from-name');
+});
+
+it('never persists a manual slug that normalises to nothing when nothing is generated', function (): void {
+    definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->immutable());
+    $immutable = Article::query()->create(['name' => 'First']);
+    $immutable->update(['slug' => '???']);
+
+    definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->onCreate(false));
+    $notGenerated = Article::query()->create(['name' => 'Second', 'slug' => '/#?']);
+
+    definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->whenEmptySource(EmptySourcePolicy::Skip));
+    $skipped = Article::query()->create(['name' => '', 'slug' => '%%%']);
+
+    expect($immutable->fresh()?->slug)->toBeNull()
+        ->and($notGenerated->fresh()?->slug)->toBeNull()
+        ->and($skipped->fresh()?->slug)->toBeNull();
+});
+
+it('drops a manual locale that normalises to nothing when that locale is not generated', function (): void {
+    definitionFor(LocalizedPage::class, SlugDefinition::for('slug')->from('name')->whenEmptySource(EmptySourcePolicy::Skip));
+
+    $page = LocalizedPage::query()->create(['name' => ['en' => 'Table'], 'slug' => ['sk' => '?#/']]);
+
+    expect($page->fresh()?->slug)->toBe(['en' => 'table']);
 });
 
 it('keeps manual bytes but uniquifies them (Verbatim)', function (): void {

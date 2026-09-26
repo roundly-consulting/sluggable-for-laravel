@@ -87,7 +87,9 @@ final readonly class GenerateSlugsAction
 
         $final = $this->decide($request, $definition, null, $current, $original, $manual, true, [], $changes);
 
-        if ($final !== null && $final !== $current) {
+        if ($final === false) {
+            $model->setAttribute($column, null);
+        } elseif ($final !== null && $final !== $current) {
             $model->setAttribute($column, $final);
         }
     }
@@ -123,7 +125,9 @@ final readonly class GenerateSlugsAction
 
             $final = $this->decide($request, $definition, $locale, $value, $previous, $manual, in_array($locale, $targets, true), $map, $changes);
 
-            if ($final !== null) {
+            if ($final === false) {
+                unset($map[$locale]);
+            } elseif ($final !== null) {
                 $map[$locale] = $final;
             }
         }
@@ -134,7 +138,8 @@ final readonly class GenerateSlugsAction
     }
 
     /**
-     * The final value for one column/locale, or null to keep what is there.
+     * The final value for one column/locale: a string to write, null to keep what is there, or
+     * false to clear a discarded manual value.
      *
      * @param  array<string, string>  $map
      * @param  list<SlugChange>  $changes
@@ -149,7 +154,7 @@ final readonly class GenerateSlugsAction
         bool $isTarget,
         array $map,
         array &$changes,
-    ): ?string {
+    ): string|false|null {
         $model = $request->model;
         $locked = $model->exists
             && ! $request->force
@@ -172,9 +177,34 @@ final readonly class GenerateSlugsAction
                 return $this->record($model, $definition, $locale, $previous, $value, ChangeReason::Manual, $seed, $changes);
             }
 
-            // A manual value that normalises to nothing is treated as no value at all.
-            $current = null;
+            // A manual value that normalises to nothing is treated as no value at all: generated
+            // when the policy fills an empty value, otherwise cleared — its raw bytes (`?#/`, `%`)
+            // never reach the column.
+            return $this->automatic($request, $definition, $locale, null, $previous, $locked, $isTarget, $map, $changes) ?? false;
         }
+
+        return $this->automatic($request, $definition, $locale, $current, $previous, $locked, $isTarget, $map, $changes);
+    }
+
+    /**
+     * The automatic part of {@see self::decide()}: generation, the no-churn fingerprint and the
+     * uniqueness re-checks. Null keeps what is there.
+     *
+     * @param  array<string, string>  $map
+     * @param  list<SlugChange>  $changes
+     */
+    private function automatic(
+        SlugGenerationRequest $request,
+        ResolvedSlugDefinition $definition,
+        ?string $locale,
+        ?string $current,
+        ?string $previous,
+        bool $locked,
+        bool $isTarget,
+        array $map,
+        array &$changes,
+    ): ?string {
+        $model = $request->model;
 
         if ($locked || ! $isTarget || ! $this->needsGeneration($request, $definition, $locale, $current)) {
             return $locked ? null : $this->verifyExisting($request, $definition, $locale, $current, $previous, $map, $changes);

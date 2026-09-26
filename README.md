@@ -291,7 +291,7 @@ $topic->slugMap();          // ['en' => …, 'sk' => …]  (string column: ['*' 
 | Situation | Behaviour |
 |---|---|
 | create, empty value | generate from the sources; empty source → `EmptySourcePolicy` (`Random` default) |
-| manual value (create or change) | `Normalize` (default): run the pipeline, then make unique · `Verbatim`: keep the bytes, make unique · `Strict`: keep the bytes, throw `SlugAlreadyTakenException` if taken |
+| manual value (create or change) | `Normalize` (default): run the pipeline, then make unique (a value normalising to nothing counts as empty: generated, or cleared) · `Verbatim`: keep the bytes, make unique · `Strict`: keep the bytes, throw `SlugAlreadyTakenException` if taken |
 | update, `Never` | nothing, even when empty |
 | update, `IfEmpty` (default) | fill an empty value / missing locales; never touch existing ones |
 | update, `WhenSourceChanges` | recompute when a source attribute changed (per locale for maps) |
