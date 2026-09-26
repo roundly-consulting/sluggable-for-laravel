@@ -19,6 +19,7 @@ it('rejects hostile or malformed locales', function (mixed $locale): void {
     'en-',
     'en->sk',
     'en"',
+    "en\n",
     42,
     null,
     'ab-'.str_repeat('abcdefgh-', 5).'x1',
@@ -37,4 +38,4 @@ it('allowlists SQL identifiers', function (): void {
 
 it('rejects hostile identifiers', function (string $identifier): void {
     IdentifierGuard::qualifiedIdentifier($identifier);
-})->with(['slug"', 'a b', 'products.slug.x', '1slug', ''])->throws(InvalidSlugDefinitionException::class);
+})->with(['slug"', 'a b', 'products.slug.x', '1slug', '', "slug\n", "products.slug\n"])->throws(InvalidSlugDefinitionException::class);

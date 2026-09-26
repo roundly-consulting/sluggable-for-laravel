@@ -14,13 +14,13 @@ use RoundlyConsulting\Sluggable\Exceptions\InvalidSlugDefinitionException;
 final class IdentifierGuard
 {
     /** Same shape translatable accepts, so one host locale set passes both packages. */
-    public const LOCALE = '/^[a-z]{2,3}(?:[_-][A-Za-z0-9]{2,8})*$/';
+    public const LOCALE = '/^[a-z]{2,3}(?:[_-][A-Za-z0-9]{2,8})*$/D';
 
     /** 35 chars fits `slug_history.locale` and keeps index names bounded. */
     public const LOCALE_MAX = 35;
 
     /** A plain identifier, optionally qualified once (`table.column`). */
-    private const IDENTIFIER = '/^[A-Za-z_][A-Za-z0-9_]{0,63}$/';
+    private const IDENTIFIER = '/^[A-Za-z_][A-Za-z0-9_]{0,63}$/D';
 
     public static function isLocale(mixed $locale): bool
     {

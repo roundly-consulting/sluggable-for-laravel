@@ -139,6 +139,8 @@ it('rejects invalid definitions', function (Closure $definition, string $message
 })->with([
     'separator' => [fn () => SlugDefinition::for('slug')->separator('/'), 'separator'],
     'long separator' => [fn () => SlugDefinition::for('slug')->separator('----'), 'separator'],
+    'separator with a trailing newline' => [fn () => SlugDefinition::for('slug')->separator("-\n"), 'separator'],
+    'column with a trailing newline' => [fn () => SlugDefinition::for("slug\n"), 'not a valid SQL identifier'],
     'column' => [fn () => SlugDefinition::for('slug; drop'), 'not a valid SQL identifier'],
     'self source' => [fn () => SlugDefinition::for('slug')->from('slug'), 'itself'],
     'source identifier' => [fn () => SlugDefinition::for('slug')->from('na me'), 'not a valid SQL identifier'],

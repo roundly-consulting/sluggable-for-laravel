@@ -165,7 +165,7 @@ final class Slugger
         }
 
         $marks = $format->unicode ? '\pM' : '';
-        $allowed = '/^[\pL\pN'.$marks.preg_quote($format->separator, '/').']*$/u';
+        $allowed = '/^[\pL\pN'.$marks.preg_quote($format->separator, '/').']*$/Du';
 
         if (preg_match($allowed, $output) !== 1) {
             throw SlugGenerationException::invalidCustomOutput($output);

@@ -42,7 +42,7 @@ final class SlugManager
     {
         $separator ??= SluggableConfig::separator();
 
-        if (preg_match('/^[-._~]{1,3}$/', $separator) !== 1) {
+        if (preg_match('/^[-._~]{1,3}$/D', $separator) !== 1) {
             throw InvalidSlugDefinitionException::invalidSeparator($separator);
         }
 

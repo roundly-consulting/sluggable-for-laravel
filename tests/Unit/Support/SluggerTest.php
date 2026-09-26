@@ -38,7 +38,7 @@ it('rejects a custom slugger that emits URL syntax', function (mixed $output): v
     $format = new SlugFormat(slugger: static fn (): mixed => $output);
 
     Slugger::slugify('anything', $format);
-})->with(['a/b?c', 'a b', 'a%20b', 42])->throws(SlugGenerationException::class);
+})->with(['a/b?c', 'a b', 'a%20b', 42, "abc\n"])->throws(SlugGenerationException::class);
 
 it('composes affixes and a collision suffix without cutting them', function (): void {
     $format = new SlugFormat(maxLength: 20);

@@ -187,7 +187,8 @@ it('generates a random value on demand for an empty source', function (): void {
 it('slugifies text through the facade', function (): void {
     expect(Slugs::slugify('Žltý kôň @ home', language: 'sk'))->toBe('zlty-kon-at-home')
         ->and(Slugs::slugify('Hello World', separator: '_'))->toBe('hello_world')
-        ->and(fn () => Slugs::slugify('x', separator: '/'))->toThrow(InvalidSlugDefinitionException::class);
+        ->and(fn () => Slugs::slugify('x', separator: '/'))->toThrow(InvalidSlugDefinitionException::class)
+        ->and(fn () => Slugs::slugify('x y', separator: "-\n"))->toThrow(InvalidSlugDefinitionException::class);
 });
 
 it('exposes definitions and locales through the facade', function (): void {

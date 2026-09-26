@@ -35,7 +35,7 @@ use RoundlyConsulting\Sluggable\Support\SlugHistoryModel;
  */
 final class SlugDefinition
 {
-    private const SEPARATOR = '/^[-._~]{1,3}$/';
+    private const SEPARATOR = '/^[-._~]{1,3}$/D';
 
     /** @var list<string>|null */
     private ?array $sourceNames = null;
