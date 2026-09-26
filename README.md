@@ -1,10 +1,12 @@
+<!-- roundly-hero:start -->
 <p align="center">
-  <a href="https://roundly-consulting.com/open-source">
-    <img src="art/hero.png" alt="Sluggable For Laravel — Roundly open source" width="100%">
+  <a href="https://roundly-consulting.com/open-source/docs/sluggable-for-laravel?utm_source=github&utm_medium=readme&utm_campaign=open-source&utm_content=sluggable-for-laravel">
+    <img src="art/hero.png" alt="Sluggable for Laravel — Roundly open source" width="100%">
   </a>
 </p>
+<!-- roundly-hero:end -->
 
-# sluggable-for-laravel
+# Sluggable for Laravel
 
 Single- and multi-language slugs for Eloquent: plain `string` slug columns and `json`/`jsonb`
 **locale-map** slug columns (`{"en": "red-chair", "sk": "cervena-stolicka"}`), any number of slug
