@@ -155,6 +155,12 @@ it('rejects unsafe verbatim values', function (): void {
     Article::query()->create(['slug' => 'a b/c']);
 })->throws(SlugGenerationException::class, 'contains whitespace');
 
+it('rejects a verbatim dot segment, which browsers resolve away', function (): void {
+    definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->manual(ManualSlugPolicy::Strict));
+
+    Article::query()->create(['slug' => '..']);
+})->throws(SlugGenerationException::class, 'contains whitespace');
+
 it('throws on a taken strict manual slug', function (): void {
     definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->manual(ManualSlugPolicy::Strict));
 

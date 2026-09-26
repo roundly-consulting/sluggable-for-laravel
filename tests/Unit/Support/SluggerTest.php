@@ -78,6 +78,10 @@ it('recognises safe URL segments', function (string $value, bool $safe): void {
     ['a%b', false],
     ["a\x01b", false],
     ["a\u{200B}b", false],
+    ['.', false],
+    ['..', false],
+    ['...', true],
+    ['.well', true],
 ]);
 
 it('produces random slugs in the requested case', function (): void {

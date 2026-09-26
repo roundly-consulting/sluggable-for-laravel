@@ -80,11 +80,12 @@ final class Slugger
 
     /**
      * Whether a value can sit in a URL path segment untouched: no whitespace, control characters,
-     * `/`, `?`, `#` or `%`.
+     * `/`, `?`, `#` or `%`, and not a `.`/`..` dot segment (URL resolution removes those).
      */
     public static function isSafeSegment(string $value): bool
     {
-        return mb_check_encoding($value, 'UTF-8')
+        return $value !== '.' && $value !== '..'
+            && mb_check_encoding($value, 'UTF-8')
             && preg_match('/[\s\p{Cc}\/?#%]/u', $value) === 0
             && preg_match(self::INVISIBLE, $value) === 0;
     }

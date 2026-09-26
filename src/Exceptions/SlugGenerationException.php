@@ -41,7 +41,7 @@ final class SlugGenerationException extends SluggableException
 
     public static function unsafeValue(Model $model, string $column, ?string $locale): self
     {
-        return new self(sprintf('The slug given for %s on [%s] contains whitespace, a control character, "/", "?", "#" or "%%".', self::where($column, $locale), $model::class));
+        return new self(sprintf('The slug given for %s on [%s] contains whitespace, a control character, "/", "?", "#" or "%%", or is a "." / ".." dot segment.', self::where($column, $locale), $model::class));
     }
 
     private static function where(string $column, ?string $locale): string

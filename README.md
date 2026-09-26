@@ -300,8 +300,8 @@ $topic->slugMap();          // ['en' => …, 'sk' => …]  (string column: ['*' 
 | scope column changed / restore with `excludeTrashed()` | re-check uniqueness; re-suffix (or throw for `Strict`) |
 
 A recomputed slug replaces the current one only when its base changed: `chair-2` never churns into
-`chair-3`. Verbatim/strict values containing whitespace, control characters, `/`, `?`, `#` or `%`
-are rejected.
+`chair-3`. Verbatim/strict values containing whitespace, control characters, `/`, `?`, `#` or `%`,
+and the dot segments `.` / `..`, are rejected.
 
 ```php
 use RoundlyConsulting\Sluggable\Facades\Slugs;
