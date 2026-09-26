@@ -8,10 +8,12 @@ use Illuminate\Support\Facades\Schema;
 use RoundlyConsulting\Sluggable\Definitions\SlugDefinition;
 use RoundlyConsulting\Sluggable\Definitions\SlugOptions;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\Configurable;
+use RoundlyConsulting\Sluggable\Tests\ModelSwap\SwappedHistoryTestCase;
 use RoundlyConsulting\Sluggable\Tests\TestCase;
 use RoundlyConsulting\Testing\Database\DriverMatrix;
 
-uses(TestCase::class)->in(__DIR__);
+uses(TestCase::class)->in('Feature', 'Unit', 'ArchTest.php', 'ConfigContractTest.php');
+uses(SwappedHistoryTestCase::class)->in('ModelSwap');
 
 /**
  * Give a Configurable fixture model the slug definitions one test needs.
