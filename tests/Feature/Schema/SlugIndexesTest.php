@@ -201,3 +201,10 @@ it('accepts Café next to cafe in a case-keeping locale map (binary collation)',
 
     expect($one->slug)->toEqual(['en' => 'Café'])->and($two->slug)->toEqual(['en' => 'cafe']);
 });
+
+it('validates the supported locales a locale-map index defaults to before any DDL', function (): void {
+    createTopics();
+    config(['sluggable.locales.supported' => ['en', "sk')); drop table topics; --"]]);
+
+    SlugIndexes::plan(SlugIndexSpec::localeMap('topics', 'slug'));
+})->throws(InvalidLocaleException::class);

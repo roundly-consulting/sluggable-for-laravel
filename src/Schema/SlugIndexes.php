@@ -19,6 +19,7 @@ use RoundlyConsulting\Sluggable\Schema\Drivers\PostgresSlugIndexes;
 use RoundlyConsulting\Sluggable\Schema\Drivers\SlugIndexDriver;
 use RoundlyConsulting\Sluggable\Schema\Drivers\SqliteSlugIndexes;
 use RoundlyConsulting\Sluggable\SlugManager;
+use RoundlyConsulting\Sluggable\Support\IdentifierGuard;
 use RoundlyConsulting\Sluggable\Support\IndexNames;
 
 /**
@@ -146,7 +147,9 @@ final class SlugIndexes
         $locales = [];
 
         if ($spec->storage === SlugStorage::LocaleMap) {
-            $locales = $spec->locales ?? app(SlugLocales::class)->supported();
+            // Explicit spec locales are validated by SlugIndexSpec; the SlugLocales defaults must
+            // pass the same allowlist before they are spliced into DDL.
+            $locales = array_map(IdentifierGuard::locale(...), $spec->locales ?? app(SlugLocales::class)->supported());
             IndexNames::assertDistinct($locales);
         }
 
