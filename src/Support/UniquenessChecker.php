@@ -72,7 +72,7 @@ final class UniquenessChecker
 
             $found = $this->strings($query->toBase()->pluck($column)->all());
 
-            return $this->matching($candidates, $found, $this->comparesLoosely($model));
+            return $this->matching($candidates, $found, self::comparesLoosely($model));
         }
 
         $locales = $definition->localeUniqueness === LocaleUniqueness::AcrossLocales || $locale === null
@@ -171,22 +171,24 @@ final class UniquenessChecker
             return [];
         }
 
-        $normalize = $loosely
-            ? static fn (string $value): string => mb_strtolower(Str::ascii($value))
-            : static fn (string $value): string => $value;
+        $found = array_map(static fn (string $value): string => self::comparable($value, $loosely), $found);
 
-        $found = array_map($normalize, $found);
-
-        return array_values(array_filter($candidates, static fn (string $candidate): bool => in_array($normalize($candidate), $found, true)));
+        return array_values(array_filter($candidates, static fn (string $candidate): bool => in_array(self::comparable($candidate, $loosely), $found, true)));
     }
 
     /**
      * MySQL/MariaDB string columns compare in their (default case- and accent-insensitive)
      * collation, so the unique index rejects `Cafe` next to `café`; mirror that approximately.
      */
-    private function comparesLoosely(Model $model): bool
+    public static function comparesLoosely(Model $model): bool
     {
         return in_array($model->getConnection()->getDriverName(), ['mysql', 'mariadb'], true);
+    }
+
+    /** The form two string slugs share when the engine considers them equal. */
+    public static function comparable(string $value, bool $loosely): string
+    {
+        return $loosely ? mb_strtolower(Str::ascii($value)) : $value;
     }
 
     private function deletedAtColumn(Model $model): string

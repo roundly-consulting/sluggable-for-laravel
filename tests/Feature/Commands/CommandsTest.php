@@ -3,10 +3,15 @@
 declare(strict_types=1);
 
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Schema;
+use RoundlyConsulting\Sluggable\Actions\FindDuplicateSlugsAction;
 use RoundlyConsulting\Sluggable\Actions\RegenerateSlugsAction;
+use RoundlyConsulting\Sluggable\DataTransferObjects\DuplicateScan;
 use RoundlyConsulting\Sluggable\DataTransferObjects\RegenerateSlugsData;
 use RoundlyConsulting\Sluggable\Definitions\SlugDefinition;
 use RoundlyConsulting\Sluggable\Enums\RegenerationMode;
@@ -161,6 +166,24 @@ it('reports duplicates and over-long slugs', function (): void {
         ->expectsOutputToContain('too long')
         ->expectsOutputToContain('2 problem(s) found.')
         ->assertSuccessful();
+});
+
+it('reports exactly the string duplicates the engine\'s unique index rejects', function (): void {
+    dropSlugIndex('articles', 'articles_slug_slug_unique');
+    DB::table('articles')->insert([['slug' => 'Cafe'], ['slug' => 'café'], ['slug' => 'cafe']]);
+
+    $findings = app(FindDuplicateSlugsAction::class)->execute(new DuplicateScan(Article::class, 'slug', null));
+
+    try {
+        Schema::table('articles', fn (Blueprint $table) => $table->unique('slug', 'articles_slug_probe_unique'));
+        $rejected = false;
+    } catch (QueryException) {
+        $rejected = true;
+    }
+
+    // MySQL's default collation is case- and accent-insensitive; the other engines compare bytes.
+    expect($rejected)->toBe(onDriver('mysql', 'mariadb'))
+        ->and(array_map(static fn ($finding): int => count($finding->keys), $findings))->toBe($rejected ? [3] : []);
 });
 
 it('reports locale-map duplicates per locale and scope', function (): void {

@@ -10,6 +10,7 @@ use RoundlyConsulting\Sluggable\DataTransferObjects\SlugDuplicate;
 use RoundlyConsulting\Sluggable\SlugManager;
 use RoundlyConsulting\Sluggable\Support\IdentifierGuard;
 use RoundlyConsulting\Sluggable\Support\LocaleMapAccessor;
+use RoundlyConsulting\Sluggable\Support\UniquenessChecker;
 
 /**
  * Audit existing rows before adding a unique index: slug values shared by several rows of one
@@ -40,6 +41,10 @@ final readonly class FindDuplicateSlugsAction
             if (! $definition->includeTrashed && in_array(SoftDeletes::class, class_uses_recursive($prototype), true)) {
                 $query->whereNull(method_exists($prototype, 'getDeletedAtColumn') ? (string) $prototype->getDeletedAtColumn() : 'deleted_at');
             }
+
+            // A string column on MySQL/MariaDB groups the way its collation (and so its unique
+            // index) compares; JSON paths compare binary everywhere.
+            $loosely = ! $definition->isLocalized() && UniquenessChecker::comparesLoosely($prototype);
 
             /** @var array<string, SlugDuplicate> $groups */
             $groups = [];
@@ -74,13 +79,13 @@ final readonly class FindDuplicateSlugsAction
                         $findings[] = new SlugDuplicate($definition->column, $slugLocale, $slug, $scope, [$key], true);
                     }
 
-                    $group = json_encode([$scope, $slugLocale, $slug], JSON_THROW_ON_ERROR);
+                    $group = json_encode([$scope, $slugLocale, UniquenessChecker::comparable($slug, $loosely)], JSON_THROW_ON_ERROR);
                     $existing = $groups[$group] ?? null;
 
                     $groups[$group] = new SlugDuplicate(
                         $definition->column,
                         $slugLocale,
-                        $slug,
+                        $existing->slug ?? $slug,
                         $scope,
                         [...($existing->keys ?? []), $key],
                     );
