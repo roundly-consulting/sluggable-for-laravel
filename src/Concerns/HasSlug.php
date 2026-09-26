@@ -307,6 +307,10 @@ trait HasSlug
      */
     public function resolveRouteBinding($value, $field = null): ?Model
     {
+        if ($this->sluggableRejectsBinding($value, $field)) {
+            return null;
+        }
+
         return $this->resolveRouteBindingQuery($this, $value, $field)->first()
             ?? $this->sluggableBindingFallback($this->newQuery(), $value, $field);
     }
@@ -317,6 +321,10 @@ trait HasSlug
      */
     public function resolveSoftDeletableRouteBinding($value, $field = null): ?Model
     {
+        if ($this->sluggableRejectsBinding($value, $field)) {
+            return null;
+        }
+
         return $this->resolveRouteBindingQuery($this, $value, $field)->withoutGlobalScope(SoftDeletingScope::class)->first()
             ?? $this->sluggableBindingFallback($this->newQuery()->withoutGlobalScope(SoftDeletingScope::class), $value, $field);
     }
@@ -469,6 +477,14 @@ trait HasSlug
 
         $query->orderBy(new RawExpression('case'.$cases.' else '.count($preferred).' end'));
         $base->addBinding($bindings, 'order');
+    }
+
+    /** A slug field whose value can never match: answer without touching the database. */
+    protected function sluggableRejectsBinding(mixed $value, ?string $field): bool
+    {
+        $definition = $this->sluggableOptions()->find(Str::afterLast($field ?? $this->getRouteKeyName(), '.'));
+
+        return $definition !== null && ! $this->sluggableIsBindable($value, $definition);
     }
 
     protected function sluggableIsBindable(mixed $value, ResolvedSlugDefinition $definition): bool
