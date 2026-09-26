@@ -71,6 +71,12 @@ final class UniqueViolationMatcher
             "{$table}_{$column}_unique",
         ];
 
+        // Laravel's default name for a scoped `unique([...scope, column])`: MySQL's message
+        // carries only the key name, never the columns, so the bare-column match cannot find it.
+        if ($definition->hasScopeColumns()) {
+            $names[] = strtolower($table.'_'.implode('_', $definition->scopeColumns).'_'.$column.'_unique');
+        }
+
         foreach ($locales as $locale) {
             $names[] = IndexNames::index($table, $column, $locale);
             $names[] = IndexNames::localeColumn($column, $locale);

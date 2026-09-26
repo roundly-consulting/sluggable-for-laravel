@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Schema;
 use RoundlyConsulting\Sluggable\Definitions\SlugDefinition;
 use RoundlyConsulting\Sluggable\Enums\ManualSlugPolicy;
 use RoundlyConsulting\Sluggable\Events\SlugCollisionRetried;
@@ -12,6 +14,7 @@ use RoundlyConsulting\Sluggable\Exceptions\SlugAlreadyTakenException;
 use RoundlyConsulting\Sluggable\Exceptions\SlugGenerationException;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\Article;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\LocalizedPage;
+use RoundlyConsulting\Sluggable\Tests\Fixtures\ScopedItem;
 
 /**
  * A racing writer, without fakes: a creating/updating listener registered AFTER HasSlug inserts a
@@ -44,6 +47,14 @@ it('retries an insert with the next suffix after a race', function (): void {
         ->and(Article::query()->where('slug', 'race')->exists())->toBeTrue();
 
     Event::assertDispatched(SlugCollisionRetried::class, fn (SlugCollisionRetried $event): bool => $event->column === 'slug' && $event->attempt === 1);
+});
+
+it('recognises a scoped unique index under its default Laravel name on every engine', function (): void {
+    dropSlugIndex('scoped_items', 'scoped_items_slug_slug_unique');
+    Schema::table('scoped_items', fn (Blueprint $table) => $table->unique(['tenant_id', 'slug']));
+    raceOnce('creating', ScopedItem::class, fn (ScopedItem $item) => DB::table('scoped_items')->insert(['slug' => $item->slug, 'tenant_id' => $item->tenant_id]));
+
+    expect(ScopedItem::query()->create(['name' => 'Race', 'tenant_id' => 1])->slug)->toBe('race-2');
 });
 
 it('keeps the outer transaction usable after a violation (savepoint per attempt)', function (): void {
