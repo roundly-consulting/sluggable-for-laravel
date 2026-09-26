@@ -30,7 +30,8 @@ final readonly class RecordSlugHistoryAction
 
         $changes = array_values(array_filter(
             $result->changes,
-            static fn ($change): bool => $force || ($options->find($change->column)->keepHistory ?? false),
+            static fn ($change): bool => $change->previous !== null
+                && ($force || ($options->find($change->column)->keepHistory ?? false)),
         ));
 
         if ($changes === [] || ! $this->tableReady()) {
@@ -48,7 +49,7 @@ final readonly class RecordSlugHistoryAction
             // Reclaim: the model's new value must not stay listed as one of its retired slugs.
             (clone $entries)->where('slug', $change->current)->forceDelete();
 
-            if ($change->previous === null || $change->previous === $change->current) {
+            if ($change->previous === $change->current) {
                 continue;
             }
 
