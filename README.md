@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="https://roundly-consulting.com/open-source">
+    <img src="art/hero.png" alt="Sluggable For Laravel — Roundly open source" width="100%">
+  </a>
+</p>
+
 # sluggable-for-laravel
 
 Single- and multi-language slugs for Eloquent: plain `string` slug columns and `json`/`jsonb`
