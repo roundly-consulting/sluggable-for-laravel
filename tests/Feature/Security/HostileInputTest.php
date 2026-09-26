@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use RoundlyConsulting\Sluggable\Definitions\SlugDefinition;
 use RoundlyConsulting\Sluggable\Exceptions\InvalidLocaleException;
 use RoundlyConsulting\Sluggable\Exceptions\InvalidSlugDefinitionException;
@@ -63,13 +64,25 @@ it('issues no query for an over-long route value', function (): void {
 });
 
 it('never names another row\'s value in exceptions', function (): void {
-    ScopedItem::query()->create(['name' => 'Other Tenant Secret', 'tenant_id' => 9]);
+    // Every candidate is taken by another row: base, the one sequential probe, the one random one.
+    config(['sluggable.limits.sequential_probes' => 1, 'sluggable.limits.random_attempts' => 1]);
+    DB::table('articles')->insert([
+        ['slug' => 'other-tenant-secret'],
+        ['slug' => 'other-tenant-secret-2'],
+        ['slug' => 'other-tenant-secret-qqqqqqqq'],
+    ]);
+    Str::createRandomStringsUsing(static fn (int $length): string => str_repeat('q', $length));
+
+    $exception = null;
 
     try {
-        Article::query()->create(['slug' => 'a b', 'name' => 'x']);
-    } catch (Throwable $exception) {
-        expect($exception->getMessage())->not->toContain('other-tenant-secret');
+        Article::query()->create(['name' => 'Other Tenant Secret']);
+    } catch (SlugGenerationException $caught) {
+        $exception = $caught;
+    } finally {
+        Str::createRandomStringsNormally();
     }
 
-    expect(true)->toBeTrue();
+    expect($exception)->toBeInstanceOf(SlugGenerationException::class)
+        ->and((string) $exception?->getMessage())->toContain('[slug]')->not->toContain('other-tenant-secret');
 });
