@@ -186,3 +186,33 @@ it('regenerates a single locale on demand', function (): void {
 
     expect($page->fresh()?->slug)->toEqual(['en' => 'one', 'sk' => 'dva']);
 });
+
+it('treats a blank fallback from a host locale source as no fallback', function (): void {
+    $page = LocalizedPage::query()->create(['name' => ['en' => 'Hello', 'sk' => 'Ahoj']]);
+
+    app()->instance(SlugLocales::class, new class implements SlugLocales
+    {
+        public function supported(): array
+        {
+            return ['en', 'sk'];
+        }
+
+        public function fallback(): ?string
+        {
+            return '';
+        }
+
+        public function current(): string
+        {
+            return 'en';
+        }
+    });
+
+    $definition = $page->slugDefinition();
+
+    expect($definition->chain(app(SlugLocales::class)))->toBe(['en', 'sk'])
+        ->and($definition->fallbackLocaleFor(app(SlugLocales::class)))->toBeNull()
+        ->and(LocalizedPage::query()->whereSlug('ahoj')->first()?->is($page))->toBeTrue()
+        ->and(LocalizedPage::findBySlug('hello')?->is($page))->toBeTrue()
+        ->and($page->currentSlug())->toBe('hello');
+});

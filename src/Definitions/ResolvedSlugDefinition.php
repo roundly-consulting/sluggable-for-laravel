@@ -102,7 +102,10 @@ final readonly class ResolvedSlugDefinition
             return $fallback;
         }
 
-        return $locales->fallback();
+        // A host locale source may report "no fallback" as ''; that is not a locale.
+        $fallback = $locales->fallback();
+
+        return is_string($fallback) && $fallback !== '' ? $fallback : null;
     }
 
     /**
@@ -126,7 +129,7 @@ final readonly class ResolvedSlugDefinition
             $chain = [...$chain, ...$locales->supported()];
         }
 
-        return array_values(array_unique($chain));
+        return array_values(array_unique(array_filter($chain, static fn (string $locale): bool => $locale !== '')));
     }
 
     public function isLockedFor(Model $model): bool
