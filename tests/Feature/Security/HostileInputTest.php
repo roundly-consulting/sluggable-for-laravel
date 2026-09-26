@@ -22,9 +22,9 @@ it('refuses a hostile column in scopes', function (): void {
 })->throws(InvalidSlugDefinitionException::class);
 
 it('bounds a five megabyte source', function (): void {
-    $article = Article::query()->create(['name' => str_repeat('word ', 1_000_000)]);
+    $slug = RoundlyConsulting\Sluggable\Facades\Slugs::generate(new Article(['name' => str_repeat('word ', 1_000_000)]));
 
-    expect(mb_strlen((string) $article->slug))->toBeLessThanOrEqual(255);
+    expect(mb_strlen($slug))->toBeLessThanOrEqual(255);
 });
 
 it('rejects a separator that would inject a path segment', function (): void {

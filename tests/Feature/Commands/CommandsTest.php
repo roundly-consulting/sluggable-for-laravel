@@ -152,8 +152,9 @@ it('fails the index command on bad input', function (): void {
 });
 
 it('reports duplicates and over-long slugs', function (): void {
+    definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->maxLength(20));
     dropSlugIndex('articles', 'articles_slug_slug_unique');
-    DB::table('articles')->insert([['slug' => 'dup'], ['slug' => 'dup'], ['slug' => 'unique'], ['slug' => str_repeat('x', 260)]]);
+    DB::table('articles')->insert([['slug' => 'dup'], ['slug' => 'dup'], ['slug' => 'unique'], ['slug' => str_repeat('x', 30)]]);
 
     $this->artisan('sluggable:duplicates', ['model' => Article::class])
         ->expectsOutputToContain('duplicate')
