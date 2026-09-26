@@ -60,6 +60,22 @@ it('does not churn suffixes when the base is unchanged', function (): void {
     expect($second->slug)->toBe('chair-2');
 });
 
+it('does not churn a random fallback suffix once the sequential probes ran out', function (): void {
+    config(['sluggable.limits.sequential_probes' => 1]);
+    definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->onUpdate(UpdatePolicy::Always));
+
+    Article::query()->create(['name' => 'Chair']);
+    Article::query()->create(['name' => 'Chair']);
+    $third = Article::query()->create(['name' => 'Chair']);
+    $fallback = $third->slug;
+
+    $third->update(['code' => 'touch']);
+
+    expect($fallback)->toMatch('/^chair-[a-z0-9]{8}$/')
+        ->and($third->slug)->toBe($fallback)
+        ->and($third->regenerateSlugs()->slug)->toBe($fallback);
+});
+
 it('recomputes on every update with Always (picking up option changes)', function (): void {
     definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->onUpdate(UpdatePolicy::Always));
     $article = Article::query()->create(['name' => 'Hello World']);

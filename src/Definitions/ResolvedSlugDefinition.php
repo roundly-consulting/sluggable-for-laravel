@@ -157,9 +157,13 @@ final readonly class ResolvedSlugDefinition
         $separator = preg_quote($this->format->separator, '/');
         $quoted = preg_quote($base, '/');
 
+        // Random suffixes are also what every strategy falls back to once the sequential probes
+        // run out, so a sequential definition must recognise them too.
+        $random = ($this->format->lowercase ? '[a-z0-9]' : '[A-Za-z0-9]').'{'.$this->randomLength.'}';
+
         $suffix = match ($this->suffixStrategy) {
-            SuffixStrategy::Sequential => '\d+',
-            SuffixStrategy::Random => ($this->format->lowercase ? '[a-z0-9]' : '[A-Za-z0-9]').'{'.$this->randomLength.'}',
+            SuffixStrategy::Sequential => '(?:\d+|'.$random.')',
+            SuffixStrategy::Random => $random,
             SuffixStrategy::Custom => '.+',
         };
 
