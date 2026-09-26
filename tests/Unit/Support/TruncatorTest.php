@@ -27,3 +27,7 @@ it('is multibyte safe', function (): void {
 it('returns nothing for a non-positive limit', function (): void {
     expect(Truncator::truncate('anything', 0, '-'))->toBe('');
 });
+
+it('trims a dotted separator without treating it as a character range', function (): void {
+    expect(Truncator::truncate('..ab..cd..', 8, '..'))->toBe('ab..cd');
+});

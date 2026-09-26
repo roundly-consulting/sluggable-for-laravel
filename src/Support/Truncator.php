@@ -32,6 +32,15 @@ final class Truncator
             }
         }
 
-        return trim($cut, $separator);
+        return self::trimSeparator($cut, $separator);
+    }
+
+    /**
+     * `trim()` by the separator's characters. The list is deduplicated first: `..` inside a trim()
+     * character list is PHP's range operator, so a `..`/`...` separator would otherwise warn.
+     */
+    public static function trimSeparator(string $value, string $separator): string
+    {
+        return trim($value, count_chars($separator, 3));
     }
 }

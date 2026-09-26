@@ -152,7 +152,7 @@ final class Slugger
         $value = (string) preg_replace('![^'.preg_quote($separator, '!').'\pL\pN'.$marks.'\s]+!u', '', $value);
         $value = (string) preg_replace('!['.preg_quote($separator, '!').'\s]+!u', $separator, $value);
 
-        return trim($value, $separator);
+        return Truncator::trimSeparator($value, $separator);
     }
 
     /** A custom slugger replaces steps 3–8; its output is re-validated so it cannot emit URL syntax. */
@@ -171,7 +171,7 @@ final class Slugger
             throw SlugGenerationException::invalidCustomOutput($output);
         }
 
-        return trim($output, $format->separator);
+        return Truncator::trimSeparator($output, $format->separator);
     }
 
     /** Step 9: keep the first `maxWords` separator-delimited words. */

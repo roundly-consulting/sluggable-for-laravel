@@ -95,3 +95,16 @@ it('bounds work on huge sources', function (): void {
 
     expect(mb_strlen($slug))->toBeLessThanOrEqual(255);
 });
+
+it('slugifies with every allowed separator, including dotted ones', function (string $separator, string $expected): void {
+    $format = new SlugFormat(separator: $separator, maxLength: 12);
+
+    expect(Slugger::slugify(' Hello World again ', $format))->toBe($expected)
+        ->and(Slugger::slugify('Hello', new SlugFormat(separator: $separator, slugger: static fn (string $source): string => $separator.$source.$separator)))->toBe('Hello');
+})->with([
+    ['..', 'hello..world'],
+    ['...', 'hello...worl'],
+    ['-..', 'hello-..worl'],
+    ['.~.', 'hello.~.worl'],
+    ['_', 'hello_world'],
+]);
