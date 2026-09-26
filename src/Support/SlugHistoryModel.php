@@ -16,6 +16,9 @@ use RoundlyConsulting\Sluggable\Models\SlugHistory;
  */
 final class SlugHistoryModel
 {
+    /** Length of the history table's `slug` column (`string('slug', 255)` in the migration). */
+    public const SLUG_LENGTH = 255;
+
     /** @return class-string<SlugHistory> */
     public static function class(): string
     {
@@ -58,6 +61,17 @@ final class SlugHistoryModel
 
         if (! $fits) {
             throw InvalidSlugDefinitionException::historyKeyTypeMismatch($model::class, $modelKeyType, $configured->value);
+        }
+    }
+
+    /**
+     * History retires values into a varchar(255): a longer slug would fail that insert AFTER the
+     * model row was saved (Postgres/MySQL reject it; SQLite would silently accept it).
+     */
+    public static function assertSlugFits(int $maxLength): void
+    {
+        if ($maxLength > self::SLUG_LENGTH) {
+            throw InvalidSlugDefinitionException::invalidOption('maxLength', 'slug history stores at most '.self::SLUG_LENGTH.' characters; lower maxLength or turn history off');
         }
     }
 }

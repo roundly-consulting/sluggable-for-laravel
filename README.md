@@ -422,6 +422,8 @@ SlugDefinition::for('slug')->from('name')->regenerateOnUpdate()->keepHistory()->
   (or your configured `history.model`).
 - The history morph id column follows `sluggable.key_type`; a model whose key type does not fit
   is rejected at definition time (`historyKeyTypeMismatch`). One key type per host.
+- History stores slugs of up to 255 characters; a history-keeping definition with a larger
+  `maxLength` is rejected at definition time.
 - `Slugs::findInHistory(Product::class, 'old-name', column: 'slug', locale: 'sk')`.
 
 ### Validation

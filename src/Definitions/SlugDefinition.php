@@ -637,6 +637,7 @@ final class SlugDefinition
 
         if ($historyEnabled) {
             SlugHistoryModel::assertKeyType($model);
+            SlugHistoryModel::assertSlugFits($format->maxLength);
         }
 
         if ($this->maxWords !== null && $this->maxWords < 1) {

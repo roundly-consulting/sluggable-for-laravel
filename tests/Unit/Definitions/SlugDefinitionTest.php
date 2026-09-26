@@ -175,6 +175,13 @@ it('refuses history when the model key does not fit the history key type', funct
     SlugDefinition::for('slug')->keepHistory()->resolve(new UuidThing);
 })->throws(InvalidSlugDefinitionException::class, 'key_type');
 
+it('refuses history for slugs longer than the history column holds', function (): void {
+    expect(SlugDefinition::for('slug')->maxLength(255)->keepHistory()->resolve(new Article)->keepHistory)->toBeTrue()
+        ->and(SlugDefinition::for('slug')->maxLength(500)->resolve(new Article)->format->maxLength)->toBe(500);
+
+    SlugDefinition::for('slug')->maxLength(256)->keepHistory()->resolve(new Article);
+})->throws(InvalidSlugDefinitionException::class, 'history');
+
 it('accepts history for uuid models when the key type is uuid', function (): void {
     config(['sluggable.key_type' => 'uuid']);
 
