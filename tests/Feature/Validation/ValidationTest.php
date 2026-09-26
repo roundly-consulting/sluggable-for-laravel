@@ -30,6 +30,15 @@ it('fails a taken string slug and ignores the edited model', function (): void {
         ->and(passes(['slug' => ['not', 'a string']], ['slug' => [UniqueSlug::for(Article::class)]]))->toBeTrue();
 });
 
+it('answers non-UTF-8 input without sending it to the database', function (): void {
+    definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->manual(ManualSlugPolicy::Strict));
+    definitionFor(LocalizedPage::class, SlugDefinition::for('slug')->from('name')->manual(ManualSlugPolicy::Verbatim));
+
+    // Postgres rejects such bytes in a query ("invalid byte sequence"): a 500 from request input.
+    expect(passes(['slug' => "a\xffb"], ['slug' => [UniqueSlug::for(Article::class)]]))->toBeTrue()
+        ->and(passes(['slug' => ['en' => "a\xffb"]], ['slug' => [UniqueSlug::for(LocalizedPage::class)]]))->toBeTrue();
+});
+
 it('compares verbatim when the manual policy keeps bytes', function (): void {
     definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->manual(ManualSlugPolicy::Verbatim));
     Article::query()->create(['slug' => 'Exact']);

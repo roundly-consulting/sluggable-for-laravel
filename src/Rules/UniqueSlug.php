@@ -118,7 +118,7 @@ final class UniqueSlug implements DataAwareRule, ValidationRule
         $checker = app(UniquenessChecker::class);
 
         if (! $definition->isLocalized()) {
-            if (is_string($value) && $value !== '' && $checker->isTaken($context, $definition, null, $this->normalize($definition, $value, null))) {
+            if (is_string($value) && $value !== '' && $this->isTaken($checker, $context, $definition, null, $value)) {
                 $fail('sluggable::validation.unique')->translate();
             }
 
@@ -144,7 +144,7 @@ final class UniqueSlug implements DataAwareRule, ValidationRule
                 continue;
             }
 
-            if ($checker->isTaken($context, $definition, $locale, $this->normalize($definition, $slug, $locale))) {
+            if ($this->isTaken($checker, $context, $definition, $locale, $slug)) {
                 $key = is_array($value) ? "{$attribute}.{$locale}" : $attribute;
 
                 $fail($key, 'sluggable::validation.unique_locale')->translate(['locale' => $locale]);
@@ -189,6 +189,17 @@ final class UniqueSlug implements DataAwareRule, ValidationRule
         }
 
         throw InvalidSlugDefinitionException::missingScopeValue($column);
+    }
+
+    /**
+     * Bytes that are not UTF-8 can never have been stored, so they are not taken — and they never
+     * reach the query, where Postgres would reject them ("invalid byte sequence") with a 500.
+     */
+    private function isTaken(UniquenessChecker $checker, ProbeContext $context, ResolvedSlugDefinition $definition, ?string $locale, string $value): bool
+    {
+        $candidate = $this->normalize($definition, $value, $locale);
+
+        return mb_check_encoding($candidate, 'UTF-8') && $checker->isTaken($context, $definition, $locale, $candidate);
     }
 
     /** Under the Normalize policy the stored value is the normalised one, so compare that. */
