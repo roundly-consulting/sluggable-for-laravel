@@ -1,20 +1,32 @@
 # Changelog
 
-All notable changes to `sluggable-for-laravel` will be documented in this file.
+All notable changes to `sluggable-for-laravel` are documented in this file. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
+[Semantic Versioning](https://semver.org/).
 
-## 1.0.0 — unreleased
+## Unreleased
 
-- Initial release: single-language (string) and multi-language (json/jsonb locale-map) slugs for
-  Eloquent with any number of slug columns per model (`HasSlug`, `SlugDefinition`, `#[Slug]`).
-- Formatting pipeline byte-identical to `Str::slug()` by default, with separators, length/word
-  caps, transliteration languages, dictionary, unicode mode, reserved words, affixes and custom
-  sluggers.
-- Uniqueness none/global/scoped (columns or closure), trashed-aware, per-locale or across locales;
-  bounded batched probing; engine-native unique indexes (`SlugIndexes`, Blueprint macros) with a
-  savepoint-safe collision retry.
-- Update, manual and lock policies; restore and scope-change re-checks.
-- Query scopes, finders and locale-aware route model binding (implicit, custom field, scoped,
-  `withTrashed()`), opt-in primary-key fallback.
-- Opt-in slug history with automatic 301 redirects, reclaim and pruning.
-- `UniqueSlug` / `ValidSlug` rules, `sluggable:regenerate`, `sluggable:indexes`,
-  `sluggable:duplicates`, `SlugChanged` / `SlugCollisionRetried` / `SlugsRegenerated` events.
+Initial public release.
+
+### Added
+
+- Automatic slugs for Eloquent with the `HasSlug` trait — zero config generates `slug` from
+  `name`, byte-identical to `Str::slug()` by default.
+- Any number of slug columns per model, configured fluently (`SlugOptions` / `SlugDefinition`)
+  or with the `#[Slug]` attribute.
+- Multi-language slugs in `json` / `jsonb` locale-map columns, each locale transliterated in
+  its own language.
+- Update, manual-value and lock policies (`UpdatePolicy`, `ManualSlugPolicy`, `lockWhen()`),
+  plus `Slugs::withoutGeneration()` for imports.
+- Scoped, per-locale uniqueness backed by engine-native unique indexes on PostgreSQL, SQLite
+  and MySQL / MariaDB (`SlugIndexes`), with automatic retry on concurrent-write collisions.
+- Query scopes and finders: `whereSlug()`, `whereSlugInAnyLocale()`, `findBySlug()` and
+  `findBySlugOrFail()`.
+- Locale-aware route model binding, including scoped bindings and an optional primary-key
+  fallback.
+- Optional slug history with automatic 301 redirects from retired slugs.
+- `ValidSlug` and `UniqueSlug` validation rules.
+- A `Slugs` facade (`slugify()`, `generate()`, `regenerate()`) and `SlugChanged`,
+  `SlugCollisionRetried` and `SlugsRegenerated` events.
+- `sluggable:regenerate`, `sluggable:indexes` and `sluggable:duplicates` Artisan commands for
+  backfills and adopting the package in an existing app.
