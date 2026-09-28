@@ -347,6 +347,11 @@ A slug column is a locale map when the model implements `ProvidesLocaleMaps` for
 `object`/`collection` cast, or when you call `->localized()`:
 
 ```php
+// config/sluggable.php — the locales your site serves (default: app.locale + app.fallback_locale)
+'locales' => ['supported' => ['en', 'sk', 'de']],
+```
+
+```php
 final class Topic extends Model implements Sluggable
 {
     use HasSlug;
@@ -361,9 +366,12 @@ $topic->slug;   // ['en' => 'investing', 'sk' => 'investovanie', 'de' => 'strass
 - Each locale is transliterated in its own language (`de`: `ß` → `ss`).
 - Locale-map **sources** are read raw, never through `getAttribute()` (translation traits return
   the current-locale string there), so the `sk` slug is always built from the `sk` name.
-- `TargetLocales::Source` (default) generates the locales present in the sources; `Supported`
-  generates every `SlugLocales::supported()` locale (missing sources fall back); `Current` only
-  the request locale; or pass a list/closure.
+- Slugs are generated only in locales a lookup can find — the current and fallback locale,
+  `SlugLocales::supported()` and an explicit `locales([...])` list — so every slug, and every
+  route key, resolves. `TargetLocales::Source` (default) generates the source locales among them
+  (a source written only in other locales still gets a slug, in the current locale); `Supported`
+  generates every supported locale (missing sources fall back); `Current` only the request locale;
+  or pass a list (searched like `supported`) or a closure (limited to that set).
 - Blank and JSON-`null` values are ignored; locales sluggable does not generate are preserved.
 - A model that exposes `isLocaleMapAttribute()` (e.g. uses `HasTranslations`) but does **not**
   implement `ProvidesLocaleMaps` is rejected (`localeMapContractMissing`) rather than silently
@@ -372,7 +380,7 @@ $topic->slug;   // ['en' => 'investing', 'sk' => 'investovanie', 'de' => 'strass
   `bindIf()`; translatable-for-laravel rebinds it to its own locale source; your own binding wins.
 
 ```php
-$topic->currentSlug();      // current locale, then the chain (fallback, then any)
+$topic->currentSlug();      // current locale, then the chain (fallback, then every resolvable locale)
 $topic->slugFor('sk');      // exact locale, no fallback
 $topic->slugMap();          // ['en' => …, 'sk' => …]  (string column: ['*' => …])
 ```
@@ -468,9 +476,9 @@ throws `SlugAlreadyTakenException` instead of being rewritten.
 Product::whereSlug('red-chair')->first();                   // default column
 Product::whereSlug('rc-01', column: 'handle')->first();
 Topic::whereSlug('investovanie', locale: 'sk')->first();     // exact locale
-Topic::whereSlug('investing')->first();                     // chain: current → fallback → any
+Topic::whereSlug('investing')->first();                     // chain: current → fallback → supported
 Topic::whereSlugIn(['a', 'b'])->get();
-Topic::whereSlugInAnyLocale('investing')->first();
+Topic::whereSlugInAnyLocale('investing')->first();          // current, fallback, supported, listed
 Topic::whereSlug('gift')->orderBySlugPreference('gift')->first();
 Product::findBySlug('red-chair');                            // ?Product (adds the preference order)
 Product::findBySlugOrFail('red-chair');                      // ModelNotFoundException → 404
@@ -494,8 +502,8 @@ route('topics.show', $topic);                                                 //
 - `routeKey()` makes the column `getRouteKeyName()`; for a locale map `getRouteKey()` is the
   current-locale slug (URL generation depends on the locale — queued URL generation should run
   under the intended locale).
-- Binding follows the definition's chain (`LocaleFallback::Any` by default: a stale-locale URL
-  still resolves) and prefers the current locale.
+- Binding follows the definition's chain (`LocaleFallback::Any` by default: a URL in any
+  resolvable locale still resolves) and prefers the current locale.
 - `bindByKeyFallback()` tries the primary key **after** a slug miss, and only for values shaped
   like the key (`ctype_digit` for integer keys, the model's own uuid/ulid validation for unique
   ids) — a numeric slug like `2024` is never shadowed by id 2024.

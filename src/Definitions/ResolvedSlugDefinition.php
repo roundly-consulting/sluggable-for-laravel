@@ -109,27 +109,36 @@ final readonly class ResolvedSlugDefinition
     }
 
     /**
-     * The reading/binding chain: current → fallback → (any supported) per {@see LocaleFallback}.
+     * Every locale a slug of this definition can be looked up under: current, fallback, the
+     * supported locales and an explicit `locales([...])` list. Generation stays inside it and
+     * `LocaleFallback::Any` searches all of it, so no slug — and no route key — exists that its
+     * own lookup cannot find.
+     *
+     * @return list<string>
+     */
+    public function resolvableLocales(SlugLocales $locales, ?string $current = null): array
+    {
+        return self::distinct([
+            $current ?? $locales->current(),
+            $this->fallbackLocaleFor($locales),
+            ...$locales->supported(),
+            ...(is_array($this->locales) ? $this->locales : []),
+        ]);
+    }
+
+    /**
+     * The reading/binding chain: current → fallback → (every resolvable locale) per
+     * {@see LocaleFallback}.
      *
      * @return list<string>
      */
     public function chain(SlugLocales $locales, ?string $current = null): array
     {
-        $chain = [$current ?? $locales->current()];
-
-        if ($this->fallback !== LocaleFallback::None) {
-            $fallback = $this->fallbackLocaleFor($locales);
-
-            if ($fallback !== null) {
-                $chain[] = $fallback;
-            }
-        }
-
-        if ($this->fallback === LocaleFallback::Any) {
-            $chain = [...$chain, ...$locales->supported()];
-        }
-
-        return array_values(array_unique(array_filter($chain, static fn (string $locale): bool => $locale !== '')));
+        return match ($this->fallback) {
+            LocaleFallback::Any => $this->resolvableLocales($locales, $current),
+            LocaleFallback::Fallback => self::distinct([$current ?? $locales->current(), $this->fallbackLocaleFor($locales)]),
+            LocaleFallback::None => self::distinct([$current ?? $locales->current()]),
+        };
     }
 
     public function isLockedFor(Model $model): bool
@@ -171,6 +180,15 @@ final readonly class ResolvedSlugDefinition
         };
 
         return '/^'.$quoted.'(?:'.$separator.$suffix.')?$/u';
+    }
+
+    /**
+     * @param  list<string|null>  $locales
+     * @return list<string>
+     */
+    private static function distinct(array $locales): array
+    {
+        return array_values(array_unique(array_filter($locales, static fn (?string $locale): bool => $locale !== null && $locale !== '')));
     }
 
     /** `pt-BR` → `pt_BR`, the form the transliterator's language table uses. */

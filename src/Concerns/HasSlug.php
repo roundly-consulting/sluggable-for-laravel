@@ -19,7 +19,6 @@ use RoundlyConsulting\Sluggable\Contracts\SlugLocales;
 use RoundlyConsulting\Sluggable\Definitions\ResolvedSlugDefinition;
 use RoundlyConsulting\Sluggable\Definitions\ResolvedSlugOptions;
 use RoundlyConsulting\Sluggable\Definitions\SlugOptions;
-use RoundlyConsulting\Sluggable\Enums\LocaleFallback;
 use RoundlyConsulting\Sluggable\Exceptions\InvalidSlugDefinitionException;
 use RoundlyConsulting\Sluggable\Exceptions\SlugMovedException;
 use RoundlyConsulting\Sluggable\SlugManager;
@@ -107,16 +106,11 @@ trait HasSlug
 
         $map = LocaleMapAccessor::read($this, $definition->column);
 
+        // Only the chain: a locale no lookup searches would make a route key whose URL 404s.
         foreach ($definition->chain(app(SlugLocales::class)) as $locale) {
             if (isset($map[$locale])) {
                 return $map[$locale];
             }
-        }
-
-        if ($definition->fallback === LocaleFallback::Any && $map !== []) {
-            ksort($map);
-
-            return reset($map);
         }
 
         return null;
@@ -185,12 +179,7 @@ trait HasSlug
             return;
         }
 
-        $locales = app(SlugLocales::class);
-        $candidates = array_values(array_unique(array_filter([
-            $locales->current(),
-            $definition->fallbackLocaleFor($locales),
-            ...$locales->supported(),
-        ])));
+        $candidates = $definition->resolvableLocales(app(SlugLocales::class));
 
         $query->where(function (Builder $group) use ($candidates, $qualified, $slug): void {
             foreach ($candidates as $locale) {

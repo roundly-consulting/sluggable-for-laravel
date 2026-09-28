@@ -135,3 +135,39 @@ it('does not fall back to the key for other key types', function (): void {
 
     expect($model->resolveRouteBinding('abc'))->toBeNull();
 });
+
+it('generates a source locale nothing searches under a resolvable locale, so its route key binds', function (): void {
+    $page = LocalizedPage::query()->create(['name' => ['fr' => 'Bonjour']]);
+
+    expect($page->slug)->toEqual(['en' => 'bonjour'])
+        ->and(route('pages.show', $page))->toEndWith('/pages/bonjour')
+        ->and(LocalizedPage::query()->whereSlugInAnyLocale('bonjour')->count())->toBe(1);
+
+    $this->get('/pages/bonjour')->assertOk()->assertSee((string) $page->id);
+
+    expect(LocalizedPage::query()->create(['name' => ['en' => 'Hello', 'fr' => 'Salut']])->slug)->toEqual(['en' => 'hello']);
+});
+
+it('never uses a locale nothing searches as the route key', function (): void {
+    $page = LocalizedPage::query()->create(['name' => ['en' => 'Hello']]);
+    DB::table('localized_pages')->where('id', $page->id)->update(['slug' => json_encode(['fr' => 'bonjour'])]);
+
+    expect(LocalizedPage::query()->findOrFail($page->id)->currentSlug())->toBeNull();
+});
+
+it('searches an explicit locale list everywhere it generates', function (): void {
+    definitionFor(LocalizedPage::class, SlugDefinition::for('slug')->from('name')->locales(['en', 'fr'])->routeKey());
+    $page = LocalizedPage::query()->create(['name' => ['en' => 'Hello', 'fr' => 'Bonjour']]);
+
+    expect($page->slug)->toEqual(['en' => 'hello', 'fr' => 'bonjour'])
+        ->and(LocalizedPage::query()->whereSlugInAnyLocale('bonjour')->count())->toBe(1)
+        ->and(LocalizedPage::findBySlug('bonjour')?->id)->toBe($page->id);
+
+    $this->get('/pages/bonjour')->assertOk()->assertSee((string) $page->id);
+});
+
+it('drops closure target locales nothing searches', function (): void {
+    definitionFor(LocalizedPage::class, SlugDefinition::for('slug')->from('name')->locales(fn (): array => ['sk', 'fr']));
+
+    expect(LocalizedPage::query()->create(['name' => ['sk' => 'Ahoj', 'fr' => 'Salut']])->slug)->toEqual(['sk' => 'ahoj']);
+});

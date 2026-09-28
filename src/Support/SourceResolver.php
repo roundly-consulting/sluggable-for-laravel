@@ -44,7 +44,10 @@ final readonly class SourceResolver
     }
 
     /**
-     * Locales a locale-map slug is generated for.
+     * Locales a locale-map slug is generated for — only resolvable ones
+     * ({@see ResolvedSlugDefinition::resolvableLocales()}): a slug in a locale no lookup searches
+     * would be a route key whose own URL 404s. Source text in such a locale still gets a slug, in
+     * the current locale, rather than none.
      *
      * @return list<string>
      */
@@ -60,7 +63,10 @@ final readonly class SourceResolver
             default => $this->sourceLocales($model, $definition),
         };
 
-        return array_values(array_unique(array_map(IdentifierGuard::locale(...), $targets)));
+        $targets = array_values(array_unique(array_map(IdentifierGuard::locale(...), $targets)));
+        $resolvable = array_values(array_intersect($targets, $definition->resolvableLocales($this->locales)));
+
+        return $resolvable === [] && $locales === TargetLocales::Source ? [$this->locales->current()] : $resolvable;
     }
 
     /**
