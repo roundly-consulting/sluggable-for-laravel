@@ -19,6 +19,9 @@ ArchPresets::morphColumnsUseTheSeam(__DIR__.'/../database/migrations');
 ArchPresets::runtimeRequireIsWhitelisted(__DIR__.'/../composer.json');
 ArchPresets::noDebuggingLeftovers();
 
+// HasSlug reaches behaviour through SlugManager (recompute, model()->findInHistory), never an action.
+ArchPresets::modelsGoThroughTheFacade('RoundlyConsulting\Sluggable');
+
 arch('the pure pipeline stays free of the database layer')
     ->expect([
         'RoundlyConsulting\Sluggable\Support\Slugger',

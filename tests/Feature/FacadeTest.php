@@ -25,6 +25,14 @@ use RoundlyConsulting\Sluggable\Tests\Fixtures\LocalizedPage;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\ScopedArticle;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\ScopedItem;
 
+it('documents its root and reaches every action', function (): void {
+    // No toBeFakeable(): sluggable ships no fake — generation is deterministic and runs on the
+    // host's own tables (see the README); queued runs are asserted with Bus::fake().
+    expect(Slugs::class)
+        ->toDocumentItsRoot()
+        ->toReachEveryAction(__DIR__.'/../../src/Actions');
+});
+
 it('scopes class-wide operations to a model class or its morph alias', function (): void {
     expect(Slugs::model(Article::class))->toBeInstanceOf(ModelSlugs::class)
         ->modelClass->toBe(Article::class);
