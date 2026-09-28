@@ -22,14 +22,13 @@ ArchPresets::noDebuggingLeftovers();
 // HasSlug reaches behaviour through SlugManager (recompute, model()->findInHistory), never an action.
 ArchPresets::modelsGoThroughTheFacade('RoundlyConsulting\Sluggable');
 
-arch('the pure pipeline stays free of the database layer')
-    ->expect([
-        'RoundlyConsulting\Sluggable\Support\Slugger',
-        'RoundlyConsulting\Sluggable\Support\Truncator',
-        'RoundlyConsulting\Sluggable\Support\IdentifierGuard',
-        'RoundlyConsulting\Sluggable\Suffixes',
-    ])
-    ->not->toUse('Illuminate\Database');
+// One case per subject: Pest's `->not->toUse()` over a multi-element `expect([...])` fails
+// only when EVERY subject uses the target, so one database-bound stage would slip through.
+foreach (['Support\Slugger', 'Support\Truncator', 'Support\IdentifierGuard', 'Suffixes'] as $stage) {
+    arch("the pure pipeline stage {$stage} stays free of the database layer")
+        ->expect("RoundlyConsulting\\Sluggable\\{$stage}")
+        ->not->toUse('Illuminate\Database');
+}
 
 arch('sluggable never references translatable (the DAG points translatable → sluggable)')
     ->expect('RoundlyConsulting\Sluggable')
