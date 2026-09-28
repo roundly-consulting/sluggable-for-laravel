@@ -14,16 +14,11 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
 use ReflectionObject;
 use RoundlyConsulting\PackageToolkit\Support\RawExpression;
-use RoundlyConsulting\Sluggable\Actions\GenerateSlugsAction;
-use RoundlyConsulting\Sluggable\Actions\ResolveSlugFromHistoryAction;
 use RoundlyConsulting\Sluggable\Contracts\Sluggable;
 use RoundlyConsulting\Sluggable\Contracts\SlugLocales;
-use RoundlyConsulting\Sluggable\DataTransferObjects\HistoryLookup;
-use RoundlyConsulting\Sluggable\DataTransferObjects\SlugGenerationRequest;
 use RoundlyConsulting\Sluggable\Definitions\ResolvedSlugDefinition;
 use RoundlyConsulting\Sluggable\Definitions\ResolvedSlugOptions;
 use RoundlyConsulting\Sluggable\Definitions\SlugOptions;
-use RoundlyConsulting\Sluggable\Enums\GenerationTrigger;
 use RoundlyConsulting\Sluggable\Enums\LocaleFallback;
 use RoundlyConsulting\Sluggable\Exceptions\InvalidSlugDefinitionException;
 use RoundlyConsulting\Sluggable\Exceptions\SlugMovedException;
@@ -148,7 +143,7 @@ trait HasSlug
      */
     public function regenerateSlugs(?array $columns = null, ?array $locales = null): static
     {
-        app(GenerateSlugsAction::class)->execute(new SlugGenerationRequest($this, GenerationTrigger::Manual, $columns, $locales));
+        app(SlugManager::class)->recompute($this, $columns, $locales);
 
         return $this;
     }
@@ -384,13 +379,7 @@ trait HasSlug
             return null;
         }
 
-        $target = app(ResolveSlugFromHistoryAction::class)->execute(new HistoryLookup(
-            modelClass: static::class,
-            slug: $value,
-            column: $definition->column,
-            locale: $definition->isLocalized() ? null : '',
-            scopeQuery: clone $scope,
-        ));
+        $target = app(SlugManager::class)->model(static::class)->findInHistory($value, $definition->column, within: clone $scope);
 
         if ($target instanceof Sluggable) {
             $current = $target->currentSlug($definition->column);

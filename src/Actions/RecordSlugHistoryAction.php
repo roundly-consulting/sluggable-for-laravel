@@ -16,6 +16,8 @@ use RoundlyConsulting\Sluggable\Support\SlugState;
  * Retire the previous value of every persisted slug change into the history table (restoring a
  * previously pruned-by-reclaim row), and reclaim: a model taking back one of its own retired slugs
  * removes that entry, so it never redirects to itself.
+ *
+ * @internal a step of the save pipeline (`SlugLifecycle::saved()`); history is recorded by saving.
  */
 final readonly class RecordSlugHistoryAction
 {

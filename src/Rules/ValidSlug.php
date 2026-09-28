@@ -8,9 +8,9 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\Model;
 use RoundlyConsulting\Sluggable\DataTransferObjects\SlugFormat;
-use RoundlyConsulting\Sluggable\SlugManager;
 use RoundlyConsulting\Sluggable\Support\SluggableConfig;
 use RoundlyConsulting\Sluggable\Support\Slugger;
+use RoundlyConsulting\Sluggable\Support\SlugState;
 
 /**
  * Passes when the value already is a slug: it equals its own normalisation, fits the length and
@@ -46,7 +46,7 @@ final class ValidSlug implements ValidationRule
      */
     public static function for(string $modelClass, ?string $column = null): self
     {
-        $definition = app(SlugManager::class)->options(new $modelClass)->get($column);
+        $definition = app(SlugState::class)->options(new $modelClass)->get($column);
         $format = $definition->format;
 
         $rule = new self($format->separator, $format->maxLength, $format->unicode, $format->lowercase);

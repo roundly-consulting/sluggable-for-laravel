@@ -14,9 +14,9 @@ use RoundlyConsulting\Sluggable\DataTransferObjects\ProbeContext;
 use RoundlyConsulting\Sluggable\Definitions\ResolvedSlugDefinition;
 use RoundlyConsulting\Sluggable\Enums\ManualSlugPolicy;
 use RoundlyConsulting\Sluggable\Exceptions\InvalidSlugDefinitionException;
-use RoundlyConsulting\Sluggable\SlugManager;
 use RoundlyConsulting\Sluggable\Support\IdentifierGuard;
 use RoundlyConsulting\Sluggable\Support\Slugger;
+use RoundlyConsulting\Sluggable\Support\SlugState;
 use RoundlyConsulting\Sluggable\Support\UniquenessChecker;
 
 /**
@@ -113,7 +113,7 @@ final class UniqueSlug implements DataAwareRule, ValidationRule
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         $prototype = new ($this->modelClass);
-        $definition = app(SlugManager::class)->options($prototype)->get($this->column);
+        $definition = app(SlugState::class)->options($prototype)->get($this->column);
         $context = $this->context($prototype, $definition);
         $checker = app(UniquenessChecker::class);
 

@@ -181,6 +181,84 @@ $table->slug();                  // string('slug', 255)
 $table->uniqueSlug();            // unique index named clinics_slug_slug_unique
 ```
 
+### The `Slugs` facade
+
+One entry point for everything that is not a model hook: flat verbs for one model, and
+`Slugs::model(Post::class)` for class-wide work.
+
+```php
+use RoundlyConsulting\Sluggable\Enums\RegenerationMode;
+use RoundlyConsulting\Sluggable\Facades\Slugs;
+
+// Text and one model
+Slugs::slugify('Žltý kôň @ home', language: 'sk');     // 'zlty-kon-at-home'
+Slugs::generate($product, column: 'slug');              // the value it would get; sets nothing
+Slugs::apply($product);                                 // run the save-time pass now (before saveQuietly/imports)
+Slugs::recompute($product, columns: ['slug']);          // recompute from the sources; you save
+Slugs::regenerate($product, columns: ['slug']);         // recompute + save
+Slugs::withoutGeneration(fn () => $importer->run());    // nestable, exception-safe toggles
+Slugs::unlocked(fn () => $product->update(['slug' => 'new']));
+Slugs::locales();                                       // SlugLocales
+
+// A whole model class (a class name or its morph alias)
+$products = Slugs::model(Product::class);
+$products->regenerate(mode: RegenerationMode::Stale, dryRun: true);   // RegenerationReport
+$products->regenerate(mode: RegenerationMode::Missing, withHistory: true, columns: ['slug']);
+$products->queueRegeneration(mode: RegenerationMode::All, chunk: 1000); // jobs dispatched (int)
+$products->duplicates(column: 'slug', locale: 'sk');   // list<SlugDuplicate> a unique index would reject
+$products->indexes(dryRun: true);                      // SlugIndexReport: the DDL, nothing executed
+$products->indexes();                                  // create the missing engine-native indexes
+$products->findInHistory('old-name', locale: 'sk');    // the row that retired a slug, or null
+$products->findInHistory('old-name', within: Product::query()->where('shop_id', $shop->id));
+$products->options();                                  // ResolvedSlugOptions
+```
+
+- `regenerate()` / `queueRegeneration()` take `mode`, `withHistory`, `columns`, `locales`,
+  `chunk`, `withoutEvents` and `force` (bypass locks) — the same options as
+  `sluggable:regenerate`; `regenerate()` also takes `dryRun`. Rows are scanned without global
+  scopes; each changed row is saved normally.
+- `findInHistory()` resolves through the model's default query (global scopes applied) or the
+  query you pass as `within` — a retired slug never reveals a row that query would not return.
+- `$model->regenerateSlugs()` is `Slugs::recompute($model)` from the model side.
+
+#### Without the facade
+
+The facade is sugar over `SlugManager`; inject it, or call the action behind a method directly.
+
+```php
+use RoundlyConsulting\Sluggable\Actions\RegenerateSlugsAction;
+use RoundlyConsulting\Sluggable\DataTransferObjects\RegenerateSlugsData;
+use RoundlyConsulting\Sluggable\Enums\RegenerationMode;
+use RoundlyConsulting\Sluggable\SlugManager;
+
+final class BackfillSlugs
+{
+    public function __construct(private SlugManager $slugs) {}
+
+    public function __invoke(): void
+    {
+        $this->slugs->model(Product::class)->regenerate(mode: RegenerationMode::Missing);
+    }
+}
+
+app(RegenerateSlugsAction::class)->execute(new RegenerateSlugsData(Product::class, mode: RegenerationMode::Stale));
+```
+
+| Method | Action |
+|---|---|
+| `apply()`, `recompute()`, `regenerate()` | `GenerateSlugsAction` |
+| `model()->regenerate()` | `RegenerateSlugsAction` |
+| `model()->queueRegeneration()` | `QueueSlugRegenerationAction` (dispatches `RegenerateSlugsJob`) |
+| `model()->duplicates()` | `FindDuplicateSlugsAction` |
+| `model()->findInHistory()` | `ResolveSlugFromHistoryAction` |
+| `model()->indexes()` | `SlugIndexes::forModel()` (schema helper, also usable in migrations) |
+
+#### Testing your code
+
+There is no `Slugs::fake()`: generation is deterministic and runs against your own database, so
+assert on the saved rows. Around `queueRegeneration()` use `Bus::fake()` and
+`Bus::assertDispatched(RegenerateSlugsJob::class)`.
+
 ### Multiple columns
 
 ```php
@@ -347,7 +425,7 @@ use RoundlyConsulting\Sluggable\Schema\SlugIndexes;
 // after Schema::create(…):
 SlugIndexes::ensure(SlugIndexSpec::localeMap('topics', 'slug', scope: ['shop_id']));
 SlugIndexes::ensure(SlugIndexSpec::string('articles', 'slug', includeTrashed: false));
-SlugIndexes::forModel(Topic::class);       // specs derived from the definitions (preferred)
+SlugIndexes::forModel(Topic::class);       // specs derived from the definitions (= Slugs::model(Topic::class)->indexes())
 SlugIndexes::plan($spec);                  // DDL only
 ```
 
@@ -437,7 +515,7 @@ SlugDefinition::for('slug')->from('name')->regenerateOnUpdate()->keepHistory()->
   is rejected at definition time (`historyKeyTypeMismatch`). One key type per host.
 - History stores slugs of up to 255 characters; a history-keeping definition with a larger
   `maxLength` is rejected at definition time.
-- `Slugs::findInHistory(Product::class, 'old-name', column: 'slug', locale: 'sk')`.
+- `Slugs::model(Product::class)->findInHistory('old-name', column: 'slug', locale: 'sk')`.
 
 ### Validation
 
@@ -463,21 +541,6 @@ use Illuminate\Validation\Rule;
 - `ValidSlug` passes when the value equals its own normalisation, fits `maxLength` and is not
   reserved (`new ValidSlug(separator: '-', maxLength: 255, unicode: false, lowercase: true, reserved: [])`).
 - Messages: `sluggable::validation.{unique,unique_locale,format,too_long,reserved,locked}`.
-
-### Facade
-
-```php
-use RoundlyConsulting\Sluggable\Facades\Slugs;
-
-Slugs::slugify('Žltý kôň @ home', language: 'sk');     // 'zlty-kon-at-home'
-Slugs::generate($product, column: 'slug');              // the value it would get; sets nothing
-Slugs::apply($product);                                 // generate now (before saveQuietly/imports)
-Slugs::regenerate($product, columns: ['slug']);         // recompute + save
-Slugs::options(Product::class);                         // ResolvedSlugOptions
-Slugs::locales();                                       // SlugLocales
-```
-
-`$model->regenerateSlugs(columns: null, locales: null)` recomputes on the instance (you save).
 
 ### Events
 
@@ -505,6 +568,8 @@ php artisan sluggable:duplicates "App\Models\Product" [--column=slug] [--locale=
 - `sluggable:duplicates` lists values a unique index would reject (and over-long values) — run it
   before adding an index to existing data. It reports; it never changes data.
 - `{model}` accepts a class name or a morph alias.
+- Each command is also on the facade: `Slugs::model(X::class)->regenerate()` /
+  `->queueRegeneration()` / `->indexes()` / `->duplicates()`.
 
 ### Composing with other traits
 
@@ -548,7 +613,7 @@ Run `php artisan sluggable:duplicates` before switching on a unique index.
 - Query-builder `insert()`/`upsert()`, `saveQuietly()` and `withoutEvents()` fire no model events
   and so generate nothing — call `Slugs::apply($model)` first.
 - A no-op `save()` does not back-fill (Laravel fires `updating` only for dirty models) — use
-  `regenerateSlugs()` or `sluggable:regenerate --mode=missing`.
+  `regenerateSlugs()`, `Slugs::model(X::class)->regenerate()` or `sluggable:regenerate --mode=missing`.
 - A race retry re-fires `creating`/`updating` for your listeners too; use `retries(0)` for models
   with non-idempotent listeners.
 - Across-locales and closure-scoped uniqueness are application-level only.

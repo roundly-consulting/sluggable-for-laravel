@@ -100,6 +100,11 @@ final class InvalidSlugDefinitionException extends SluggableException
         return new self("[{$model}] uses HasSlug but does not implement the Sluggable contract.");
     }
 
+    public static function notSluggableModel(string $model): self
+    {
+        return new self(sprintf('[%s] is not an Eloquent model (class or morph alias) implementing the Sluggable contract.', mb_substr($model, 0, 128)));
+    }
+
     public static function invalidOption(string $option, string $reason): self
     {
         return new self("The slug option [{$option}] is invalid: {$reason}.");

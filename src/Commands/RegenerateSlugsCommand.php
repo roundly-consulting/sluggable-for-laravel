@@ -5,15 +5,13 @@ declare(strict_types=1);
 namespace RoundlyConsulting\Sluggable\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Contracts\Bus\Dispatcher;
-use Illuminate\Support\Collection;
+use RoundlyConsulting\Sluggable\Actions\QueueSlugRegenerationAction;
 use RoundlyConsulting\Sluggable\Actions\RegenerateSlugsAction;
 use RoundlyConsulting\Sluggable\Contracts\Sluggable;
 use RoundlyConsulting\Sluggable\DataTransferObjects\RegeneratedSlug;
 use RoundlyConsulting\Sluggable\DataTransferObjects\RegenerateSlugsData;
 use RoundlyConsulting\Sluggable\Enums\RegenerationMode;
 use RoundlyConsulting\Sluggable\Exceptions\InvalidLocaleException;
-use RoundlyConsulting\Sluggable\Jobs\RegenerateSlugsJob;
 use RoundlyConsulting\Sluggable\Support\IdentifierGuard;
 use RoundlyConsulting\Sluggable\Support\ModelArgument;
 
@@ -33,7 +31,7 @@ final class RegenerateSlugsCommand extends Command
 
     protected $description = 'Backfill missing slugs or regenerate existing ones';
 
-    public function handle(RegenerateSlugsAction $action, Dispatcher $bus): int
+    public function handle(RegenerateSlugsAction $action, QueueSlugRegenerationAction $queue): int
     {
         $model = ModelArgument::resolve($this->argument('model'));
 
@@ -84,7 +82,9 @@ final class RegenerateSlugsCommand extends Command
         );
 
         if ($this->option('queue') && ! $dryRun) {
-            return $this->queue($data, $bus);
+            $this->info("Dispatched {$queue->execute($data)} job(s).");
+
+            return self::SUCCESS;
         }
 
         $report = $action->execute($data);
@@ -103,33 +103,6 @@ final class RegenerateSlugsCommand extends Command
         }
 
         $this->info(sprintf('%s %d of %d row(s).', $dryRun ? 'Would change' : 'Changed', $report->changed, $report->scanned));
-
-        return self::SUCCESS;
-    }
-
-    private function queue(RegenerateSlugsData $data, Dispatcher $bus): int
-    {
-        $prototype = new ($data->modelClass);
-        $jobs = 0;
-
-        $prototype->newQueryWithoutScopes()->toBase()
-            ->select($prototype->getKeyName())
-            ->chunkById($data->chunk, function (Collection $rows) use ($data, $bus, $prototype, &$jobs): void {
-                $keys = [];
-
-                foreach ($rows as $row) {
-                    $key = ((array) $row)[$prototype->getKeyName()] ?? null;
-
-                    if (is_int($key) || is_string($key)) {
-                        $keys[] = $key;
-                    }
-                }
-
-                $bus->dispatch(new RegenerateSlugsJob($data, $keys));
-                $jobs++;
-            }, $prototype->getKeyName());
-
-        $this->info("Dispatched {$jobs} job(s).");
 
         return self::SUCCESS;
     }

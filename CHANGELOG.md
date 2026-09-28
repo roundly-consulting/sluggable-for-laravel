@@ -26,7 +26,12 @@ Initial public release.
   fallback.
 - Optional slug history with automatic 301 redirects from retired slugs.
 - `ValidSlug` and `UniqueSlug` validation rules.
-- A `Slugs` facade (`slugify()`, `generate()`, `regenerate()`) and `SlugChanged`,
-  `SlugCollisionRetried` and `SlugsRegenerated` events.
+- A `Slugs` facade (`slugify()`, `generate()`, `apply()`, `recompute()`, `regenerate()`) and
+  `SlugChanged`, `SlugCollisionRetried` and `SlugsRegenerated` events.
+- `Slugs::model(Post::class)` for class-wide work: `regenerate()` (mode / dry run / history /
+  columns / locales / chunk / force → `RegenerationReport`), `queueRegeneration()` (one
+  `RegenerateSlugsJob` per chunk, via the new `QueueSlugRegenerationAction`), `duplicates()`,
+  `indexes()`, `findInHistory()` (optionally `within` your own query) and `options()`.
+  `model()` accepts a class name or a morph alias and refuses anything not sluggable.
 - `sluggable:regenerate`, `sluggable:indexes` and `sluggable:duplicates` Artisan commands for
   backfills and adopting the package in an existing app.

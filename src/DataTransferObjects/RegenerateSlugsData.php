@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace RoundlyConsulting\Sluggable\DataTransferObjects;
 
 use Illuminate\Database\Eloquent\Model;
+use InvalidArgumentException;
 use RoundlyConsulting\Sluggable\Enums\RegenerationMode;
 
 /**
- * One regeneration run (`sluggable:regenerate`, or one queued chunk of it).
+ * One regeneration run (`Slugs::model()->regenerate()`, `sluggable:regenerate`, or one queued
+ * chunk of either).
  */
 final readonly class RegenerateSlugsData
 {
@@ -29,7 +31,11 @@ final readonly class RegenerateSlugsData
         public bool $withoutEvents = false,
         public bool $force = false,
         public ?array $keys = null,
-    ) {}
+    ) {
+        if ($chunk < 1) {
+            throw new InvalidArgumentException("The regeneration chunk size must be at least 1, [{$chunk}] given.");
+        }
+    }
 
     /** @param list<int|string> $keys */
     public function forKeys(array $keys): self

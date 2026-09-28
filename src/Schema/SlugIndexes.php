@@ -18,9 +18,9 @@ use RoundlyConsulting\Sluggable\Schema\Drivers\MysqlSlugIndexes;
 use RoundlyConsulting\Sluggable\Schema\Drivers\PostgresSlugIndexes;
 use RoundlyConsulting\Sluggable\Schema\Drivers\SlugIndexDriver;
 use RoundlyConsulting\Sluggable\Schema\Drivers\SqliteSlugIndexes;
-use RoundlyConsulting\Sluggable\SlugManager;
 use RoundlyConsulting\Sluggable\Support\IdentifierGuard;
 use RoundlyConsulting\Sluggable\Support\IndexNames;
+use RoundlyConsulting\Sluggable\Support\SlugState;
 
 /**
  * Engine-native unique indexes for slug columns — per locale for locale maps, partial (or a
@@ -107,7 +107,7 @@ final class SlugIndexes
     public static function specsFor(string $model, ?array $columns = null): array
     {
         $instance = new $model;
-        $options = app(SlugManager::class)->options($instance);
+        $options = app(SlugState::class)->options($instance);
         $specs = [];
 
         foreach ($options->definitions as $definition) {

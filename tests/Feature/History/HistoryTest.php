@@ -168,9 +168,9 @@ it('finds retired slugs through the facade', function (): void {
     $article = Article::query()->create(['name' => 'Hist']);
     $article->update(['name' => 'Hist Two']);
 
-    expect(Slugs::findInHistory(Article::class, 'hist')?->is($article))->toBeTrue()
-        ->and(Slugs::findInHistory(Article::class, 'unknown'))->toBeNull()
-        ->and(Slugs::findInHistory(LocalizedPage::class, 'x', locale: 'sk'))->toBeNull();
+    expect(Slugs::model(Article::class)->findInHistory('hist')?->is($article))->toBeTrue()
+        ->and(Slugs::model(Article::class)->findInHistory('unknown'))->toBeNull()
+        ->and(Slugs::model(LocalizedPage::class)->findInHistory('x', locale: 'sk'))->toBeNull();
 });
 
 it('avoids reusing another model\'s retired slug when asked', function (): void {
@@ -240,7 +240,7 @@ it('fails loudly in testing when the history table is missing', function (): voi
     $article = Article::query()->create(['name' => 'No Table']);
 
     expect(fn () => $article->update(['name' => 'Still No Table']))->toThrow(InvalidSlugDefinitionException::class, 'does not exist')
-        ->and(Slugs::findInHistory(Article::class, 'x'))->toBeNull();
+        ->and(Slugs::model(Article::class)->findInHistory('x'))->toBeNull();
 });
 
 it('logs and skips when the history table is missing in production', function (): void {

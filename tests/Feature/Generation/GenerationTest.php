@@ -192,7 +192,7 @@ it('slugifies text through the facade', function (): void {
 });
 
 it('exposes definitions and locales through the facade', function (): void {
-    expect(Slugs::options(Article::class)->default()->column)->toBe('slug')
-        ->and(Slugs::options(new PlainThing)->columns())->toBe(['slug'])
+    expect(Slugs::model(Article::class)->options()->default()->column)->toBe('slug')
+        ->and(Slugs::model(PlainThing::class)->options()->columns())->toBe(['slug'])
         ->and(Slugs::locales()->supported())->toBe(['en', 'sk', 'de']);
 });

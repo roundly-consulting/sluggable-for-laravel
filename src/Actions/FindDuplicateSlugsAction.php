@@ -7,9 +7,9 @@ namespace RoundlyConsulting\Sluggable\Actions;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use RoundlyConsulting\Sluggable\DataTransferObjects\DuplicateScan;
 use RoundlyConsulting\Sluggable\DataTransferObjects\SlugDuplicate;
-use RoundlyConsulting\Sluggable\SlugManager;
 use RoundlyConsulting\Sluggable\Support\IdentifierGuard;
 use RoundlyConsulting\Sluggable\Support\LocaleMapAccessor;
+use RoundlyConsulting\Sluggable\Support\SlugState;
 use RoundlyConsulting\Sluggable\Support\UniquenessChecker;
 
 /**
@@ -19,7 +19,7 @@ use RoundlyConsulting\Sluggable\Support\UniquenessChecker;
 final readonly class FindDuplicateSlugsAction
 {
     public function __construct(
-        private SlugManager $manager,
+        private SlugState $state,
     ) {}
 
     /** @return list<SlugDuplicate> */
@@ -30,7 +30,7 @@ final readonly class FindDuplicateSlugsAction
         $keyName = $prototype->getKeyName();
         $findings = [];
 
-        foreach ($this->manager->options($prototype)->definitions as $definition) {
+        foreach ($this->state->options($prototype)->definitions as $definition) {
             if ($scan->column !== null && $definition->column !== $scan->column) {
                 continue;
             }
