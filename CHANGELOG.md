@@ -11,7 +11,7 @@ Initial public release.
 ### Added
 
 - Automatic slugs for Eloquent with the `HasSlug` trait — zero config generates `slug` from
-  `name`, byte-identical to `Str::slug()` by default.
+  `name`, matching `Str::slug()` for ordinary input by default.
 - Any number of slug columns per model, configured fluently (`SlugOptions` / `SlugDefinition`)
   or with the `#[Slug]` attribute.
 - Multi-language slugs in `json` / `jsonb` locale-map columns, each locale transliterated in
