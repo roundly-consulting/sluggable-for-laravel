@@ -232,8 +232,7 @@ final readonly class GenerateSlugsAction
         if ($current !== null && $request->mode !== RegenerationMode::All) {
             $base = $this->generator->compose($model, $definition, $locale, $seed);
 
-            // No churn: `chair-2` stays `chair-2` while the base is still `chair`.
-            if (preg_match($definition->suffixPattern($base), $current) === 1) {
+            if ($current === $base || $this->keepsSuffixed($request, $definition, $locale, $current, $base, $map)) {
                 return $this->verifyExisting($request, $definition, $locale, $current, $previous, $map, $changes);
             }
         }
@@ -242,6 +241,33 @@ final readonly class GenerateSlugsAction
         $reason = $current === null ? ChangeReason::Generated : ChangeReason::Regenerated;
 
         return $this->record($model, $definition, $locale, $previous, $value, $reason, $seed, $changes);
+    }
+
+    /**
+     * No churn: `chair-2` stays `chair-2` while its base is still `chair`. Shape alone cannot tell
+     * a collision suffix from part of the old source (`room-101` once `Room 101` became `Room`),
+     * so the base must be the one the persisted sources produce, and an explicit recompute also
+     * wants the bare base genuinely taken — otherwise the suffix is stale.
+     *
+     * @param  array<string, string>  $map
+     */
+    private function keepsSuffixed(SlugGenerationRequest $request, ResolvedSlugDefinition $definition, ?string $locale, string $current, string $base, array $map): bool
+    {
+        $model = $request->model;
+
+        if (preg_match($definition->suffixPattern($base), $current) !== 1) {
+            return false;
+        }
+
+        if ($model->exists && $this->generator->originalBase($model, $definition, $locale) !== $base) {
+            return false;
+        }
+
+        if (! in_array($request->trigger, [GenerationTrigger::Manual, GenerationTrigger::Command], true)) {
+            return true;
+        }
+
+        return $this->checker->isTaken($this->generator->context($model, $definition, $locale, $map), $definition, $locale, $base);
     }
 
     private function needsGeneration(SlugGenerationRequest $request, ResolvedSlugDefinition $definition, ?string $locale, ?string $current): bool

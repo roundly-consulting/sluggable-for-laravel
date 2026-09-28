@@ -135,8 +135,9 @@ trait HasSlug
     }
 
     /**
-     * Recompute slugs from the current sources (sets attributes; the caller saves). A value whose
-     * base is unchanged is kept, so this never churns `-2` into `-3`.
+     * Recompute slugs from the current sources (sets attributes; the caller saves). A suffixed
+     * value is kept while its base is unchanged and the bare base is still taken, so this never
+     * churns `-2` into `-3`.
      *
      * @param  list<string>|null  $columns
      * @param  list<string>|null  $locales

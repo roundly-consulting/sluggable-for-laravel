@@ -54,6 +54,19 @@ final readonly class SlugGenerator
     }
 
     /**
+     * The base the persisted sources produce — what the stored slug was built from before this
+     * save changed them. Read from a clone holding the raw original attributes, so accessors,
+     * casts and closure sources see the old values exactly as they saw the new ones.
+     */
+    public function originalBase(Model $model, ResolvedSlugDefinition $definition, ?string $locale): string
+    {
+        $original = clone $model;
+        $original->setRawAttributes($model->getRawOriginal());
+
+        return $this->compose($original, $definition, $locale, new SlugSeed($this->body($original, $definition, $locale), true));
+    }
+
+    /**
      * The first free value for a seed: the bare candidate, then sequential/custom suffixes in
      * batches of `probe_batch`, then random suffixes — then an exception, never an endless loop.
      */

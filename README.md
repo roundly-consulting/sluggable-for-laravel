@@ -391,7 +391,10 @@ $topic->slugMap();          // ['en' => …, 'sk' => …]  (string column: ['*' 
 | scope column changed / restore with `excludeTrashed()` | re-check uniqueness; re-suffix (or throw for `Strict`) |
 
 A recomputed slug replaces the current one only when its base changed: `chair-2` never churns into
-`chair-3`. Verbatim/strict values containing whitespace, control characters, `/`, `?`, `#` or `%`,
+`chair-3`. The base is the one the saved sources produce, not the slug's shape — renaming
+`Room 101` to `Room` gives `room` (or `room-2`), never the stale `room-101`. An explicit recompute
+(`recompute()`, `regenerateSlugs()`, `--mode=stale`) also drops a suffix whose bare base is free
+again. Verbatim/strict values containing whitespace, control characters, `/`, `?`, `#` or `%`,
 and the dot segments `.` / `..`, are rejected.
 
 ```php

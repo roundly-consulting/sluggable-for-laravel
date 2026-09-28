@@ -108,8 +108,9 @@ final class SlugManager
 
     /**
      * Recompute slugs from the current sources, setting attributes only (the caller saves). A
-     * value whose base is unchanged is kept, so this never churns `-2` into `-3`. What
-     * `$model->regenerateSlugs()` runs.
+     * suffixed value is kept while its base is unchanged and the bare base is still taken, so this
+     * never churns `-2` into `-3` — and never keeps a stale look-alike such as `room-101` for
+     * `Room`. What `$model->regenerateSlugs()` runs.
      *
      * @param  list<string>|null  $columns
      * @param  list<string>|null  $locales

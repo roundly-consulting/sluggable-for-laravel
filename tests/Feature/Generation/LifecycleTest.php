@@ -5,6 +5,7 @@ declare(strict_types=1);
 use RoundlyConsulting\Sluggable\Definitions\SlugDefinition;
 use RoundlyConsulting\Sluggable\Enums\EmptySourcePolicy;
 use RoundlyConsulting\Sluggable\Enums\ManualSlugPolicy;
+use RoundlyConsulting\Sluggable\Enums\RegenerationMode;
 use RoundlyConsulting\Sluggable\Enums\UpdatePolicy;
 use RoundlyConsulting\Sluggable\Exceptions\SlugAlreadyTakenException;
 use RoundlyConsulting\Sluggable\Exceptions\SlugGenerationException;
@@ -260,4 +261,74 @@ it('regenerates on demand, respecting the fingerprint', function (): void {
     expect($article->fresh()?->slug)->toBe('after');
 
     expect(Slugs::regenerate($article)->slug)->toBe('after');
+});
+
+it('regenerates when the new base is a prefix of the old slug', function (string $from, string $to, string $expected): void {
+    definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->regenerateOnUpdate());
+
+    $article = Article::query()->create(['name' => $from]);
+    $article->update(['name' => $to]);
+
+    expect($article->fresh()?->slug)->toBe($expected);
+})->with([
+    'trailing number' => ['Room 101', 'Room', 'room'],
+    'model number' => ['iPhone 15', 'iPhone', 'iphone'],
+    'year' => ['Best Laptops 2024', 'Best Laptops', 'best-laptops'],
+    'eight-letter word' => ['Chair Textiles', 'Chair', 'chair'],
+]);
+
+it('re-suffixes a prefix rename against the rows that really hold the base', function (): void {
+    definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->onUpdate(UpdatePolicy::Always));
+    Article::query()->create(['name' => 'Room']);
+
+    $renamed = Article::query()->create(['name' => 'Room 101']);
+    $renamed->update(['name' => 'Room']);
+
+    expect($renamed->fresh()?->slug)->toBe('room-2');
+});
+
+it('regenerates a prefix rename under a custom suffix strategy', function (): void {
+    definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->regenerateOnUpdate()
+        ->suffixUsing(fn (string $base, int $attempt): string => 'v'.$attempt));
+
+    $article = Article::query()->create(['name' => 'Chair Textiles']);
+    $article->update(['name' => 'Chair']);
+
+    expect($article->fresh()?->slug)->toBe('chair');
+});
+
+it('regenerates a locale-map prefix rename', function (): void {
+    definitionFor(LocalizedPage::class, SlugDefinition::for('slug')->from('name')->regenerateOnUpdate());
+
+    $page = LocalizedPage::query()->create(['name' => ['en' => 'Room 101', 'sk' => 'Izba 101']]);
+    $page->update(['name' => ['en' => 'Room', 'sk' => 'Izba 101']]);
+
+    expect($page->fresh()?->slug)->toEqual(['en' => 'room', 'sk' => 'izba-101']);
+});
+
+it('keeps a real suffix on a save that does not change the base, even once the base is free', function (): void {
+    definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->onUpdate(UpdatePolicy::Always));
+    $first = Article::query()->create(['name' => 'Chair']);
+    $second = Article::query()->create(['name' => 'Chair']);
+    $first->forceDelete();
+
+    $second->update(['code' => 'touch']);
+
+    expect($second->fresh()?->slug)->toBe('chair-2');
+});
+
+it('detects a stale look-alike suffix on an explicit recompute', function (): void {
+    $stale = Slugs::withoutGeneration(fn () => Article::query()->create(['name' => 'Room', 'slug' => 'room-101']));
+    Article::query()->create(['name' => 'Chair']);
+    $suffixed = Article::query()->create(['name' => 'Chair']);
+
+    $report = Slugs::model(Article::class)->regenerate(mode: RegenerationMode::Stale, dryRun: true);
+
+    expect($report->changed)->toBe(1)
+        ->and($report->samples[0]->change->previous)->toBe('room-101')
+        ->and($report->samples[0]->change->current)->toBe('room')
+        ->and(Slugs::recompute($stale)->changes)->toHaveCount(1)
+        ->and($stale->slug)->toBe('room')
+        ->and(Slugs::recompute($suffixed)->changes)->toBe([])
+        ->and($suffixed->slug)->toBe('chair-2');
 });
