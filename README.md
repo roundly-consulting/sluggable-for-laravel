@@ -582,7 +582,8 @@ php artisan sluggable:duplicates "App\Models\Product" [--column=slug] [--locale=
   {--dry-run} {--history} {--without-events} {--queue} {--force}` — rows are scanned without
   global scopes; locks are respected unless `--force`; `--mode=all` asks for confirmation unless
   `--force`; `--queue` dispatches one `RegenerateSlugsJob` per chunk.
-- `sluggable:duplicates` lists values a unique index would reject (and over-long values) — run it
+- `sluggable:duplicates` lists values a unique index would reject (and over-long values; a
+  `notUnique()` column gets no index, so only its over-long values are listed) — run it
   before adding an index to existing data. It reports; it never changes data.
 - `{model}` accepts a class name or a morph alias.
 - Each command is also on the facade: `Slugs::model(X::class)->regenerate()` /

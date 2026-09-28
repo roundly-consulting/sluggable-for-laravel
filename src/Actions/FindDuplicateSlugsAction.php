@@ -14,7 +14,7 @@ use RoundlyConsulting\Sluggable\Support\UniquenessChecker;
 
 /**
  * Audit existing rows before adding a unique index: slug values shared by several rows of one
- * scope (and locale), plus values longer than the definition allows.
+ * scope (and locale) of a unique definition, plus values longer than the definition allows.
  */
 final readonly class FindDuplicateSlugsAction
 {
@@ -77,6 +77,11 @@ final readonly class FindDuplicateSlugsAction
 
                     if (mb_strlen($slug) > $definition->format->maxLength) {
                         $findings[] = new SlugDuplicate($definition->column, $slugLocale, $slug, $scope, [$key], true);
+                    }
+
+                    // A notUnique() column gets no unique index, so a shared value is no finding there.
+                    if (! $definition->isUnique()) {
+                        continue;
                     }
 
                     $group = json_encode([$scope, $slugLocale, UniquenessChecker::comparable($slug, $loosely)], JSON_THROW_ON_ERROR);

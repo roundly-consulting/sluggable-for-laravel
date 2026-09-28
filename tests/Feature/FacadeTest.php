@@ -139,6 +139,17 @@ it('lists duplicates through the facade', function (): void {
         ->and(Slugs::model(Article::class)->duplicates(column: 'other'))->toBe([]);
 });
 
+it('never reports duplicates of a notUnique column, only its over-long values', function (): void {
+    definitionFor(Article::class, SlugDefinition::for('slug')->from('name'), SlugDefinition::for('code')->from('name')->notUnique()->maxLength(10));
+    DB::table('articles')->insert([['slug' => 'a', 'code' => 'same'], ['slug' => 'b', 'code' => 'same'], ['slug' => 'c', 'code' => 'far-too-long-code']]);
+
+    $findings = Slugs::model(Article::class)->duplicates(column: 'code');
+
+    expect($findings)->toHaveCount(1)
+        ->and($findings[0]->slug)->toBe('far-too-long-code')
+        ->and($findings[0]->overLength)->toBeTrue();
+});
+
 it('plans and creates a model\'s indexes through the facade', function (): void {
     dropSlugIndex('scoped_items', 'scoped_items_slug_slug_unique');
 
