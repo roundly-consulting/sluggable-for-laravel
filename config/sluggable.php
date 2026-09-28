@@ -14,7 +14,9 @@ return [
     | Every option a SlugDefinition leaves unset falls back to these values.
     | A model with no definition at all gets one slug column (`column`)
     | generated from one source attribute (`source`). With the formatting
-    | defaults below, generated slugs are byte-identical to Str::slug().
+    | defaults below, generated slugs match Str::slug() for ordinary input
+    | of up to 255 characters (zero-width/bidi marks are stripped first,
+    | and length is capped at `max_length`).
     |
     */
 

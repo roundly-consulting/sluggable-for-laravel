@@ -10,11 +10,11 @@ use RoundlyConsulting\Sluggable\DataTransferObjects\SlugFormat;
 use RoundlyConsulting\Sluggable\Exceptions\SlugGenerationException;
 
 /**
- * The pure slug pipeline. With the default format its output is byte-identical to `Str::slug()`
- * (same step order: ascii → separator flip → dictionary → lower → strip → collapse → trim), so a
- * package migrating onto sluggable keeps its existing slugs. On top of that it bounds the work,
- * strips invisible characters, caps words and length, and composes affixes and collision suffixes
- * without ever cutting an affix.
+ * The pure slug pipeline. With the default format its output matches `Str::slug()` for ordinary
+ * input up to `max_length` (same step order: ascii → separator flip → dictionary → lower → strip →
+ * collapse → trim), so a package migrating onto sluggable keeps its existing slugs. On top of that
+ * it bounds the work, strips invisible characters (so `zero\u{200B}width` joins into `zerowidth`),
+ * caps words and length, and composes affixes and collision suffixes without ever cutting an affix.
  */
 final class Slugger
 {

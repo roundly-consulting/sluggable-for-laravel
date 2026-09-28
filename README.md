@@ -25,8 +25,12 @@ columns per model, scoped per-locale uniqueness backed by engine-native unique i
 locale-aware route model binding, validation rules, Artisan tooling and an optional SEO slug
 history with automatic 301 redirects. Native Laravel only — zero third-party runtime dependencies.
 
-With the default options every generated slug is **byte-identical to `Str::slug()`**, so adopting
-the package keeps the slugs you already have.
+With the default options every generated slug **matches `Str::slug()` for ordinary input of up to
+255 characters**, so adopting the package keeps the slugs you already have. Two deliberate
+differences: zero-width and bidi control characters are stripped before transliterating
+(`"zero\u{200B}width"` gives `zerowidth`, where `Str::slug()` gives `zero-width`), and slugs are
+capped at `max_length` (255) from the first `max_source_length` (2000) source characters, where
+`Str::slug()` has no limit.
 
 ## Requirements
 
@@ -170,6 +174,8 @@ use RoundlyConsulting\Sluggable\Contracts\Sluggable;
 final class Clinic extends Model implements Sluggable
 {
     use HasSlug;   // zero config: `slug` generated from `name`
+
+    protected $fillable = ['name', 'slug'];
 }
 
 Clinic::create(['name' => 'Happy Paws'])->slug;   // "happy-paws"
@@ -355,6 +361,8 @@ A slug column is a locale map when the model implements `ProvidesLocaleMaps` for
 final class Topic extends Model implements Sluggable
 {
     use HasSlug;
+
+    protected $fillable = ['name', 'slug'];
 
     protected $casts = ['name' => 'array', 'slug' => 'array'];
 }
