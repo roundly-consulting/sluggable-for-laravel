@@ -456,6 +456,12 @@ transaction stays usable on Postgres. A violation that names no slug index is re
 one where the re-probe finds nothing taken throws `SlugGenerationException::constraintMismatch()`
 (your index disagrees with the definition — run `sluggable:indexes --dry-run`).
 
+Only sluggable's own values are re-suffixed. Inside `Slugs::withoutGeneration()` the retry is off
+too: a duplicate slug you write yourself fails with the database's
+`UniqueConstraintViolationException`. Under `ManualSlugPolicy::Strict`, a value no generation pass
+produced in this save (a manual value, or one saved with `saveQuietly()` without `Slugs::apply()`)
+throws `SlugAlreadyTakenException` instead of being rewritten.
+
 ### Querying
 
 ```php

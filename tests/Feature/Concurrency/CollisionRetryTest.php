@@ -12,6 +12,7 @@ use RoundlyConsulting\Sluggable\Enums\ManualSlugPolicy;
 use RoundlyConsulting\Sluggable\Events\SlugCollisionRetried;
 use RoundlyConsulting\Sluggable\Exceptions\SlugAlreadyTakenException;
 use RoundlyConsulting\Sluggable\Exceptions\SlugGenerationException;
+use RoundlyConsulting\Sluggable\Facades\Slugs;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\Article;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\LocalizedPage;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\ScopedItem;
@@ -141,4 +142,34 @@ it('re-suffixes a racing locale-map slug', function (): void {
     $page = LocalizedPage::query()->create(['name' => ['en' => 'Table', 'sk' => 'Stôl']]);
 
     expect($page->slug)->toBe(['en' => 'table-2', 'sk' => 'stol']);
+});
+
+it('never re-suffixes a slug written while generation is off', function (ManualSlugPolicy $policy): void {
+    definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->manual($policy));
+    Event::fake([SlugCollisionRetried::class]);
+    Article::query()->create(['name' => 'Owner', 'slug' => 'taken']);
+
+    expect(fn () => Slugs::withoutGeneration(fn () => Article::query()->create(['name' => 'Import', 'slug' => 'taken'])))
+        ->toThrow(UniqueConstraintViolationException::class)
+        ->and(Article::query()->where('slug', 'like', 'taken%')->pluck('slug')->all())->toBe(['taken']);
+
+    Event::assertNotDispatched(SlugCollisionRetried::class);
+})->with([ManualSlugPolicy::Normalize, ManualSlugPolicy::Verbatim, ManualSlugPolicy::Strict]);
+
+it('throws for a strict slug no generation pass produced instead of re-suffixing it', function (): void {
+    definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->manual(ManualSlugPolicy::Strict));
+    Article::query()->create(['name' => 'Owner', 'slug' => 'taken']);
+
+    expect(fn () => (new Article(['name' => 'Quiet', 'slug' => 'taken']))->saveQuietly())
+        ->toThrow(SlugAlreadyTakenException::class)
+        ->and(Article::query()->where('slug', 'like', 'taken%')->pluck('slug')->all())->toBe(['taken']);
+});
+
+it('makes a quietly saved manual slug unique under a non-strict policy', function (): void {
+    Article::query()->create(['name' => 'Owner', 'slug' => 'taken']);
+
+    $quiet = new Article(['name' => 'Quiet', 'slug' => 'taken']);
+    $quiet->saveQuietly();
+
+    expect($quiet->fresh()?->slug)->toBe('taken-2');
 });
