@@ -20,7 +20,9 @@ use RoundlyConsulting\Sluggable\Models\SlugHistory;
 
 /**
  * Every sluggable config key, read LITERALLY (the config-contract scrape cannot see a dynamic
- * `config('sluggable.'.$key)`), validated where a typo would otherwise silently downgrade.
+ * `config('sluggable.'.$key)`) and strictly: an unset (null) key takes its shipped default,
+ * and a present but invalid value throws `InvalidSlugDefinitionException` naming the key —
+ * never a silent fallback.
  */
 final class SluggableConfig
 {
@@ -36,17 +38,17 @@ final class SluggableConfig
 
     public static function defaultColumn(): string
     {
-        return self::string(config('sluggable.defaults.column'), 'slug');
+        return self::string('sluggable.defaults.column', config('sluggable.defaults.column'), 'slug');
     }
 
     public static function defaultSource(): string
     {
-        return self::string(config('sluggable.defaults.source'), 'name');
+        return self::string('sluggable.defaults.source', config('sluggable.defaults.source'), 'name');
     }
 
     public static function separator(): string
     {
-        return self::string(config('sluggable.defaults.separator'), '-');
+        return self::string('sluggable.defaults.separator', config('sluggable.defaults.separator'), '-');
     }
 
     public static function maxLength(): int
@@ -65,13 +67,13 @@ final class SluggableConfig
 
     public static function language(): string
     {
-        return self::string(config('sluggable.defaults.language'), 'en');
+        return self::string('sluggable.defaults.language', config('sluggable.defaults.language'), 'en');
     }
 
     /** @return array<string, string> */
     public static function dictionary(): array
     {
-        return self::stringMap(config('sluggable.defaults.dictionary', ['@' => 'at']));
+        return self::stringMap('sluggable.defaults.dictionary', config('sluggable.defaults.dictionary') ?? ['@' => 'at']);
     }
 
     public static function lowercase(): bool
@@ -86,12 +88,12 @@ final class SluggableConfig
 
     public static function uniqueness(): Uniqueness
     {
-        return self::validator()->enum('sluggable.defaults.uniqueness', Uniqueness::class);
+        return self::validator()->enum('sluggable.defaults.uniqueness', Uniqueness::class, Uniqueness::Global);
     }
 
     public static function localeUniqueness(): LocaleUniqueness
     {
-        return self::validator()->enum('sluggable.defaults.locale_uniqueness', LocaleUniqueness::class);
+        return self::validator()->enum('sluggable.defaults.locale_uniqueness', LocaleUniqueness::class, LocaleUniqueness::PerLocale);
     }
 
     public static function includeTrashed(): bool
@@ -106,22 +108,22 @@ final class SluggableConfig
 
     public static function onUpdate(): UpdatePolicy
     {
-        return self::validator()->enum('sluggable.defaults.on_update', UpdatePolicy::class);
+        return self::validator()->enum('sluggable.defaults.on_update', UpdatePolicy::class, UpdatePolicy::IfEmpty);
     }
 
     public static function manual(): ManualSlugPolicy
     {
-        return self::validator()->enum('sluggable.defaults.manual', ManualSlugPolicy::class);
+        return self::validator()->enum('sluggable.defaults.manual', ManualSlugPolicy::class, ManualSlugPolicy::Normalize);
     }
 
     public static function emptySource(): EmptySourcePolicy
     {
-        return self::validator()->enum('sluggable.defaults.empty_source', EmptySourcePolicy::class);
+        return self::validator()->enum('sluggable.defaults.empty_source', EmptySourcePolicy::class, EmptySourcePolicy::Random);
     }
 
     public static function suffix(): SuffixStrategy
     {
-        return self::validator()->enum('sluggable.defaults.suffix', SuffixStrategy::class);
+        return self::validator()->enum('sluggable.defaults.suffix', SuffixStrategy::class, SuffixStrategy::Sequential);
     }
 
     public static function suffixStart(): int
@@ -136,18 +138,18 @@ final class SluggableConfig
 
     public static function targetLocales(): TargetLocales
     {
-        return self::validator()->enum('sluggable.defaults.target_locales', TargetLocales::class);
+        return self::validator()->enum('sluggable.defaults.target_locales', TargetLocales::class, TargetLocales::Source);
     }
 
     public static function localeFallback(): LocaleFallback
     {
-        return self::validator()->enum('sluggable.defaults.locale_fallback', LocaleFallback::class);
+        return self::validator()->enum('sluggable.defaults.locale_fallback', LocaleFallback::class, LocaleFallback::Any);
     }
 
     /** @return list<string> lowercased */
     public static function reserved(): array
     {
-        return array_map(mb_strtolower(...), self::stringList(config('sluggable.reserved', [])));
+        return array_map(mb_strtolower(...), self::stringList('sluggable.reserved', config('sluggable.reserved') ?? []));
     }
 
     /** @return list<string>|null */
@@ -155,14 +157,14 @@ final class SluggableConfig
     {
         $supported = config('sluggable.locales.supported');
 
-        return $supported === null ? null : self::stringList($supported);
+        return $supported === null ? null : self::stringList('sluggable.locales.supported', $supported);
     }
 
     public static function fallbackLocale(): ?string
     {
         $fallback = config('sluggable.locales.fallback');
 
-        return is_string($fallback) && $fallback !== '' ? $fallback : null;
+        return $fallback === null ? null : self::string('sluggable.locales.fallback', $fallback, '');
     }
 
     public static function bindingKeyFallback(): bool
@@ -223,7 +225,7 @@ final class SluggableConfig
 
     public static function historyTable(): string
     {
-        return IdentifierGuard::identifier(self::string(config('sluggable.history.table'), 'slug_history'), 'history table');
+        return IdentifierGuard::identifier(self::string('sluggable.history.table', config('sluggable.history.table'), 'slug_history'), 'history table');
     }
 
     /** @return class-string<SlugHistory> */
@@ -275,36 +277,73 @@ final class SluggableConfig
         return Config::using(InvalidSlugDefinitionException::class);
     }
 
-    private static function string(mixed $value, string $default): string
+    /**
+     * The default when unset; otherwise a non-empty string, or the package exception —
+     * never a silent fallback to the default.
+     */
+    private static function string(string $key, mixed $value, string $default): string
     {
-        return is_string($value) && $value !== '' ? $value : $default;
-    }
-
-    /** @return list<string> */
-    private static function stringList(mixed $value): array
-    {
-        if (! is_array($value)) {
-            return [];
+        if ($value === null) {
+            return $default;
         }
 
-        return array_values(array_filter($value, static fn (mixed $item): bool => is_string($item) && $item !== ''));
+        if (! is_string($value) || trim($value) === '') {
+            throw InvalidSlugDefinitionException::invalidOption($key, 'it must be a non-empty string, '.self::describe($value).' given');
+        }
+
+        return $value;
     }
 
-    /** @return array<string, string> */
-    private static function stringMap(mixed $value): array
+    /**
+     * A list of non-empty strings; a non-list or a bad entry throws rather than being
+     * dropped.
+     *
+     * @return list<string>
+     */
+    private static function stringList(string $key, mixed $value): array
     {
         if (! is_array($value)) {
-            return [];
+            throw InvalidSlugDefinitionException::invalidOption($key, 'it must be a list of strings, '.self::describe($value).' given');
+        }
+
+        $list = [];
+
+        foreach ($value as $index => $item) {
+            $list[] = self::string("{$key}.{$index}", $item ?? '', '');
+        }
+
+        return $list;
+    }
+
+    /**
+     * A string => string map; a non-map or a bad entry throws rather than being dropped.
+     *
+     * @return array<string, string>
+     */
+    private static function stringMap(string $key, mixed $value): array
+    {
+        if (! is_array($value)) {
+            throw InvalidSlugDefinitionException::invalidOption($key, 'it must be a string => string map, '.self::describe($value).' given');
         }
 
         $map = [];
 
-        foreach ($value as $key => $replacement) {
-            if (is_string($key) && is_string($replacement)) {
-                $map[$key] = $replacement;
+        foreach ($value as $search => $replacement) {
+            if (! is_string($search) || ! is_string($replacement)) {
+                throw InvalidSlugDefinitionException::invalidOption(
+                    "{$key}.{$search}",
+                    'every entry must map a string to a string, '.self::describe($replacement).' given',
+                );
             }
+
+            $map[$search] = $replacement;
         }
 
         return $map;
+    }
+
+    private static function describe(mixed $value): string
+    {
+        return is_scalar($value) ? '['.var_export($value, true).']' : '['.get_debug_type($value).']';
     }
 }
