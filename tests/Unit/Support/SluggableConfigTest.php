@@ -42,12 +42,12 @@ it('reads env-word switches as booleans', function (string $value, bool $expecte
     ['1', true],
 ]);
 
-it('falls back to the default only when a switch is unset', function (): void {
-    config(['sluggable.history.redirect' => null, 'sluggable.history.enabled' => null]);
+it('falls back to the default only when a switch is not set', function (?string $unset): void {
+    config(['sluggable.history.redirect' => $unset, 'sluggable.history.enabled' => $unset]);
 
     expect(SluggableConfig::historyRedirect())->toBeTrue()
         ->and(SluggableConfig::historyEnabled())->toBeFalse();
-});
+})->with(['absent' => null, 'empty' => '', 'whitespace' => '  ']);
 
 it('throws the package exception for an enum typo', function (): void {
     config(['sluggable.defaults.uniqueness' => 'globl']);

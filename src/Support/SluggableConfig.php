@@ -20,9 +20,9 @@ use RoundlyConsulting\Sluggable\Models\SlugHistory;
 
 /**
  * Every sluggable config key, read LITERALLY (the config-contract scrape cannot see a dynamic
- * `config('sluggable.'.$key)`) and strictly: an unset (null) key takes its shipped default,
- * and a present but invalid value throws `InvalidSlugDefinitionException` naming the key —
- * never a silent fallback.
+ * `config('sluggable.'.$key)`) and strictly: a key that is not set (absent, null or blank —
+ * `''` or whitespace, a host's `KEY=`) takes its shipped default, and any other invalid value
+ * throws `InvalidSlugDefinitionException` naming the key — never a silent fallback.
  */
 final class SluggableConfig
 {
@@ -56,9 +56,10 @@ final class SluggableConfig
         return self::validator()->integer('sluggable.defaults.max_length', 255, min: 8, max: 2048);
     }
 
+    /** The word cap, or null — no cap — when not set (absent, null or blank). */
     public static function maxWords(): ?int
     {
-        if (config('sluggable.defaults.max_words') === null) {
+        if (self::isUnset(config('sluggable.defaults.max_words'))) {
             return null;
         }
 
@@ -160,11 +161,15 @@ final class SluggableConfig
         return $supported === null ? null : self::stringList('sluggable.locales.supported', $supported);
     }
 
+    /**
+     * The fallback locale, or null when not set (absent, null or blank) — the default
+     * source then falls back to `app.fallback_locale`.
+     */
     public static function fallbackLocale(): ?string
     {
         $fallback = config('sluggable.locales.fallback');
 
-        return $fallback === null ? null : self::string('sluggable.locales.fallback', $fallback, '');
+        return self::isUnset($fallback) ? null : self::string('sluggable.locales.fallback', $fallback, '');
     }
 
     public static function bindingKeyFallback(): bool
@@ -231,7 +236,8 @@ final class SluggableConfig
     /** @return class-string<SlugHistory> */
     public static function historyModel(): string
     {
-        $model = config('sluggable.history.model') ?? SlugHistory::class;
+        $model = config('sluggable.history.model');
+        $model = self::isUnset($model) ? SlugHistory::class : $model;
 
         if (! is_string($model) || ! is_a($model, SlugHistory::class, true)) {
             throw InvalidSlugDefinitionException::invalidOption('sluggable.history.model', 'it must name a subclass of '.SlugHistory::class);
@@ -240,9 +246,13 @@ final class SluggableConfig
         return $model;
     }
 
+    /**
+     * Days of slug history to keep, or null — never prune — when not set (absent, null or
+     * blank). A blank `SLUGGABLE_HISTORY_PRUNE_DAYS=` therefore never turns pruning on.
+     */
     public static function pruneAfterDays(): ?int
     {
-        if (config('sluggable.history.prune_after_days') === null) {
+        if (self::isUnset(config('sluggable.history.prune_after_days'))) {
             return null;
         }
 
@@ -264,7 +274,8 @@ final class SluggableConfig
         }
 
         foreach (self::SHIPPED_DEFAULTS as $key => $shipped) {
-            if (array_key_exists($key, $configured) && $configured[$key] != $shipped) {
+            // A blank value is not set — it reads as the shipped default.
+            if (array_key_exists($key, $configured) && ! self::isUnset($configured[$key]) && $configured[$key] != $shipped) {
                 return true;
             }
         }
@@ -278,20 +289,31 @@ final class SluggableConfig
     }
 
     /**
-     * The default when unset; otherwise a non-empty string, or the package exception —
-     * never a silent fallback to the default.
+     * The default when not set (null or blank); otherwise a string, or the package exception
+     * — never a silent fallback to the default.
      */
     private static function string(string $key, mixed $value, string $default): string
     {
-        if ($value === null) {
-            return $default;
-        }
+        return self::isUnset($value) ? $default : self::nonEmptyString($key, $value);
+    }
 
+    /**
+     * A non-empty string, or the package exception. Used as-is for a list entry, where a
+     * blank item is junk rather than an unset setting.
+     */
+    private static function nonEmptyString(string $key, mixed $value): string
+    {
         if (! is_string($value) || trim($value) === '') {
             throw InvalidSlugDefinitionException::invalidOption($key, 'it must be a non-empty string, '.self::describe($value).' given');
         }
 
         return $value;
+    }
+
+    /** Not set: null, or a blank string (`''` or whitespace — a host's `KEY=`). */
+    private static function isUnset(mixed $value): bool
+    {
+        return $value === null || (is_string($value) && trim($value) === '');
     }
 
     /**
@@ -309,7 +331,7 @@ final class SluggableConfig
         $list = [];
 
         foreach ($value as $index => $item) {
-            $list[] = self::string("{$key}.{$index}", $item ?? '', '');
+            $list[] = self::nonEmptyString("{$key}.{$index}", $item);
         }
 
         return $list;

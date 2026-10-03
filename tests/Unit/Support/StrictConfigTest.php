@@ -11,15 +11,18 @@ use RoundlyConsulting\Sluggable\Enums\TargetLocales;
 use RoundlyConsulting\Sluggable\Enums\Uniqueness;
 use RoundlyConsulting\Sluggable\Enums\UpdatePolicy;
 use RoundlyConsulting\Sluggable\Exceptions\InvalidSlugDefinitionException;
+use RoundlyConsulting\Sluggable\Models\SlugHistory;
 use RoundlyConsulting\Sluggable\Support\SluggableConfig;
 
 /**
- * A typo in the host's sluggable config fails loudly. Before: a blank or wrong-typed
+ * A typo in the host's sluggable config fails loudly. Before: a wrong-typed
  * `column`/`source`/`separator`/`language`/`history.table` became the default, a non-string
- * entry in `reserved`, `dictionary` or `locales.supported` was dropped, and a blank or
- * non-string `locales.fallback` became null.
+ * entry in `reserved`, `dictionary` or `locales.supported` was dropped, and a non-string
+ * `locales.fallback` became null. A blank value (a host's `KEY=`) is not set and takes the
+ * default — for the optional `locales.fallback`, `max_words` and `prune_after_days` that
+ * default is null (the app fallback locale, no cap, never prune).
  */
-it('refuses a blank or non-string string setting instead of using the default (strict config)', function (string $key, mixed $value, Closure $read): void {
+it('refuses a non-string string setting instead of using the default (strict config)', function (string $key, mixed $value, Closure $read): void {
     config([$key => $value]);
 
     expect($read)->toThrow(InvalidSlugDefinitionException::class, $key);
@@ -36,7 +39,6 @@ it('refuses a blank or non-string string setting instead of using the default (s
     $cases = [];
 
     foreach ($reads as $key => $read) {
-        $cases["{$key} blank"] = [$key, '', $read];
         $cases["{$key} array"] = [$key, ['x'], $read];
         $cases["{$key} int"] = [$key, 5, $read];
     }
@@ -44,14 +46,14 @@ it('refuses a blank or non-string string setting instead of using the default (s
     return $cases;
 });
 
-it('takes the default for an unset string setting (strict config)', function (): void {
+it('takes the default for an unset or blank string setting (strict config)', function (?string $unset): void {
     config([
-        'sluggable.defaults.column' => null,
-        'sluggable.defaults.source' => null,
-        'sluggable.defaults.separator' => null,
-        'sluggable.defaults.language' => null,
-        'sluggable.history.table' => null,
-        'sluggable.locales.fallback' => null,
+        'sluggable.defaults.column' => $unset,
+        'sluggable.defaults.source' => $unset,
+        'sluggable.defaults.separator' => $unset,
+        'sluggable.defaults.language' => $unset,
+        'sluggable.history.table' => $unset,
+        'sluggable.locales.fallback' => $unset,
     ]);
 
     expect(SluggableConfig::defaultColumn())->toBe('slug')
@@ -60,6 +62,38 @@ it('takes the default for an unset string setting (strict config)', function ():
         ->and(SluggableConfig::language())->toBe('en')
         ->and(SluggableConfig::historyTable())->toBe('slug_history')
         ->and(SluggableConfig::fallbackLocale())->toBeNull();
+})->with(['absent' => null, 'empty' => '', 'whitespace' => '  ']);
+
+it('reads a blank optional limit as not set, never switching it on (strict config)', function (string $blank): void {
+    config([
+        'sluggable.defaults.max_words' => $blank,
+        'sluggable.history.prune_after_days' => $blank,
+        'sluggable.history.model' => $blank,
+    ]);
+
+    expect(SluggableConfig::maxWords())->toBeNull()
+        ->and(SluggableConfig::pruneAfterDays())->toBeNull()
+        ->and(SluggableConfig::historyModel())->toBe(SlugHistory::class);
+})->with(['empty' => '', 'whitespace' => '  ']);
+
+it('still refuses a junk optional limit (strict config)', function (string $key, Closure $read): void {
+    config([$key => 'five']);
+
+    expect($read)->toThrow(InvalidSlugDefinitionException::class, $key);
+})->with([
+    'max words' => ['sluggable.defaults.max_words', fn () => SluggableConfig::maxWords()],
+    'prune after days' => ['sluggable.history.prune_after_days', fn () => SluggableConfig::pruneAfterDays()],
+    'history model' => ['sluggable.history.model', fn () => SluggableConfig::historyModel()],
+]);
+
+it('reads a blank shipped default as not customised (strict config)', function (): void {
+    config(['sluggable.defaults.separator' => '', 'sluggable.defaults.on_update' => ' ']);
+
+    expect(SluggableConfig::defaultsAreCustomised())->toBeFalse();
+
+    config(['sluggable.defaults.separator' => '_']);
+
+    expect(SluggableConfig::defaultsAreCustomised())->toBeTrue();
 });
 
 it('refuses a non-list or a non-string entry in a string list (strict config)', function (string $key, mixed $value, Closure $read): void {
@@ -105,16 +139,16 @@ it('reads a valid dictionary and the default when unset (strict config)', functi
     expect(SluggableConfig::dictionary())->toBe(['@' => 'at']);
 });
 
-it('takes the shipped default for an unset policy instead of throwing missing (strict config)', function (): void {
+it('takes the shipped default for an unset or blank policy instead of throwing missing (strict config)', function (?string $unset): void {
     config([
-        'sluggable.defaults.uniqueness' => null,
-        'sluggable.defaults.locale_uniqueness' => null,
-        'sluggable.defaults.on_update' => null,
-        'sluggable.defaults.manual' => null,
-        'sluggable.defaults.empty_source' => null,
-        'sluggable.defaults.suffix' => null,
-        'sluggable.defaults.target_locales' => null,
-        'sluggable.defaults.locale_fallback' => null,
+        'sluggable.defaults.uniqueness' => $unset,
+        'sluggable.defaults.locale_uniqueness' => $unset,
+        'sluggable.defaults.on_update' => $unset,
+        'sluggable.defaults.manual' => $unset,
+        'sluggable.defaults.empty_source' => $unset,
+        'sluggable.defaults.suffix' => $unset,
+        'sluggable.defaults.target_locales' => $unset,
+        'sluggable.defaults.locale_fallback' => $unset,
     ]);
 
     expect(SluggableConfig::uniqueness())->toBe(Uniqueness::Global)
@@ -125,4 +159,4 @@ it('takes the shipped default for an unset policy instead of throwing missing (s
         ->and(SluggableConfig::suffix())->toBe(SuffixStrategy::Sequential)
         ->and(SluggableConfig::targetLocales())->toBe(TargetLocales::Source)
         ->and(SluggableConfig::localeFallback())->toBe(LocaleFallback::Any);
-});
+})->with(['absent' => null, 'empty' => '', 'whitespace' => '  ']);
