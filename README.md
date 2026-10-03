@@ -159,10 +159,13 @@ return [
 | `history.prune_after_days` | `null` | `SLUGGABLE_HISTORY_PRUNE_DAYS` | prune age; `null` keeps forever |
 | `key_type` | `bigint` | `SLUGGABLE_KEY_TYPE` | primary-key type of the slugged models (`bigint`/`uuid`/`ulid`) |
 
-Enum, integer and boolean keys are validated: a typo (say `SLUGGABLE_HISTORY=disabled`) throws
-`InvalidSlugDefinitionException` instead of silently falling back. Switches accept
-`true`/`false`, `1`/`0`, `on`/`off` and `yes`/`no`; an unrecognized `key_type` throws the toolkit's
-`InvalidConfigurationException`.
+Every key is validated: a typo (say `SLUGGABLE_HISTORY=disabled`) throws
+`InvalidSlugDefinitionException` naming the key instead of silently falling back. Switches accept
+`true`/`false`, `1`/`0`, `on`/`off` and `yes`/`no`; string keys (`column`, `source`, `separator`,
+`language`, `history.table`, `locales.fallback`) must be non-empty strings; `reserved` and
+`locales.supported` must be lists of non-empty strings and `dictionary` a string => string map, a
+bad entry throwing rather than being dropped. Only an unset (`null`) key takes its default. An
+unrecognized `key_type` throws the toolkit's `InvalidConfigurationException`.
 
 ## Usage
 
