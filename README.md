@@ -124,7 +124,7 @@ return [
 | `defaults.source` | `name` | — | source attribute of the zero-config definition |
 | `defaults.separator` | `-` | — | 1–3 chars from `-` `.` `_` `~` |
 | `defaults.max_length` | `255` | — | characters incl. prefix/suffix and collision suffix (8–2048) |
-| `defaults.max_words` | `null` | — | word cap (`null` = none) |
+| `defaults.max_words` | `null` | — | word cap (`null` or blank = none) |
 | `defaults.language` | `en` | `SLUGGABLE_LANGUAGE` | transliteration language of **string** slugs (locale maps use each locale) |
 | `defaults.dictionary` | `['@' => 'at']` | — | replacements applied before stripping |
 | `defaults.lowercase` | `true` | — | lowercase the slug |
@@ -143,7 +143,7 @@ return [
 | `defaults.locale_fallback` | `any` | — | `none` / `fallback` / `any` — reading and binding chain |
 | `reserved` | `[]` | — | slugs nobody may take (case-insensitive) |
 | `locales.supported` | `null` | — | locale list; `null` = `app.locale` + `app.fallback_locale` |
-| `locales.fallback` | `null` | `SLUGGABLE_FALLBACK_LOCALE` | `null` = `app.fallback_locale` |
+| `locales.fallback` | `null` | `SLUGGABLE_FALLBACK_LOCALE` | `null` or blank = `app.fallback_locale` |
 | `binding.key_fallback` | `false` | — | try the primary key after a slug miss |
 | `limits.max_source_length` | `2000` | — | source characters considered |
 | `limits.sequential_probes` | `50` | — | sequential candidates before random ones |
@@ -156,16 +156,17 @@ return [
 | `history.avoid_reuse` | `false` | — | default for `avoidHistoricalSlugs()` |
 | `history.table` | `slug_history` | `SLUGGABLE_HISTORY_TABLE` | history table |
 | `history.model` | `SlugHistory::class` | — | swappable history model (must extend it) |
-| `history.prune_after_days` | `null` | `SLUGGABLE_HISTORY_PRUNE_DAYS` | prune age; `null` keeps forever |
+| `history.prune_after_days` | `null` | `SLUGGABLE_HISTORY_PRUNE_DAYS` | prune age; `null` or blank (`SLUGGABLE_HISTORY_PRUNE_DAYS=`) keeps forever |
 | `key_type` | `bigint` | `SLUGGABLE_KEY_TYPE` | primary-key type of the slugged models (`bigint`/`uuid`/`ulid`) |
 
 Every key is validated: a typo (say `SLUGGABLE_HISTORY=disabled`) throws
 `InvalidSlugDefinitionException` naming the key instead of silently falling back. Switches accept
 `true`/`false`, `1`/`0`, `on`/`off` and `yes`/`no`; string keys (`column`, `source`, `separator`,
-`language`, `history.table`, `locales.fallback`) must be non-empty strings; `reserved` and
+`language`, `history.table`, `locales.fallback`) must be strings; `reserved` and
 `locales.supported` must be lists of non-empty strings and `dictionary` a string => string map, a
-bad entry throwing rather than being dropped. Only an unset (`null`) key takes its default. An
-unrecognized `key_type` throws the toolkit's `InvalidConfigurationException`.
+bad entry throwing rather than being dropped. Only a key that is not set — absent, `null` or blank
+(a host's `KEY=`) — takes its default. An unrecognized `key_type` throws the toolkit's
+`InvalidConfigurationException`.
 
 ## Usage
 
