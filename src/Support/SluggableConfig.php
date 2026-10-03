@@ -51,7 +51,7 @@ final class SluggableConfig
 
     public static function maxLength(): int
     {
-        return self::validator()->intBetween('sluggable.defaults.max_length', 8, 2048, 255);
+        return self::validator()->integer('sluggable.defaults.max_length', 255, min: 8, max: 2048);
     }
 
     public static function maxWords(): ?int
@@ -60,7 +60,7 @@ final class SluggableConfig
             return null;
         }
 
-        return self::validator()->intBetween('sluggable.defaults.max_words', 1, 1000, 1000);
+        return self::validator()->integer('sluggable.defaults.max_words', 1000, min: 1, max: 1000);
     }
 
     public static function language(): string
@@ -126,12 +126,12 @@ final class SluggableConfig
 
     public static function suffixStart(): int
     {
-        return self::validator()->intBetween('sluggable.defaults.suffix_start', 1, 1000, 2);
+        return self::validator()->integer('sluggable.defaults.suffix_start', 2, min: 1, max: 1000);
     }
 
     public static function randomLength(): int
     {
-        return self::validator()->intBetween('sluggable.defaults.random_length', 4, 32, 8);
+        return self::validator()->integer('sluggable.defaults.random_length', 8, min: 4, max: 32);
     }
 
     public static function targetLocales(): TargetLocales
@@ -172,27 +172,27 @@ final class SluggableConfig
 
     public static function maxSourceLength(): int
     {
-        return self::validator()->intBetween('sluggable.limits.max_source_length', 64, 100000, 2000);
+        return self::validator()->integer('sluggable.limits.max_source_length', 2000, min: 64, max: 100000);
     }
 
     public static function sequentialProbes(): int
     {
-        return self::validator()->intBetween('sluggable.limits.sequential_probes', 1, 1000, 50);
+        return self::validator()->integer('sluggable.limits.sequential_probes', 50, min: 1, max: 1000);
     }
 
     public static function probeBatch(): int
     {
-        return self::validator()->intBetween('sluggable.limits.probe_batch', 1, 100, 10);
+        return self::validator()->integer('sluggable.limits.probe_batch', 10, min: 1, max: 100);
     }
 
     public static function randomAttempts(): int
     {
-        return self::validator()->intBetween('sluggable.limits.random_attempts', 1, 100, 10);
+        return self::validator()->integer('sluggable.limits.random_attempts', 10, min: 1, max: 100);
     }
 
     public static function retries(): int
     {
-        return self::validator()->intBetween('sluggable.concurrency.retries', 0, 20, 3);
+        return self::validator()->integer('sluggable.concurrency.retries', 3, min: 0, max: 20);
     }
 
     public static function historyEnabled(): bool
@@ -207,7 +207,7 @@ final class SluggableConfig
 
     public static function historyRedirectStatus(): int
     {
-        $status = self::validator()->intBetween('sluggable.history.redirect_status', 301, 308, 301);
+        $status = self::validator()->integer('sluggable.history.redirect_status', 301, min: 301, max: 308);
 
         if (! in_array($status, [301, 302, 307, 308], true)) {
             throw InvalidSlugDefinitionException::invalidOption('sluggable.history.redirect_status', 'use 301, 302, 307 or 308');
@@ -244,7 +244,7 @@ final class SluggableConfig
             return null;
         }
 
-        return self::validator()->intBetween('sluggable.history.prune_after_days', 1, 36500, 365);
+        return self::validator()->integer('sluggable.history.prune_after_days', 365, min: 1, max: 36500);
     }
 
     public static function keyType(): KeyType
