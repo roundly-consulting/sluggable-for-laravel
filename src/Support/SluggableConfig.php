@@ -76,12 +76,12 @@ final class SluggableConfig
 
     public static function lowercase(): bool
     {
-        return Config::boolean('sluggable.defaults.lowercase', true);
+        return self::validator()->boolean('sluggable.defaults.lowercase', true);
     }
 
     public static function unicode(): bool
     {
-        return Config::boolean('sluggable.defaults.unicode');
+        return self::validator()->boolean('sluggable.defaults.unicode');
     }
 
     public static function uniqueness(): Uniqueness
@@ -96,12 +96,12 @@ final class SluggableConfig
 
     public static function includeTrashed(): bool
     {
-        return Config::boolean('sluggable.defaults.include_trashed', true);
+        return self::validator()->boolean('sluggable.defaults.include_trashed', true);
     }
 
     public static function onCreate(): bool
     {
-        return Config::boolean('sluggable.defaults.on_create', true);
+        return self::validator()->boolean('sluggable.defaults.on_create', true);
     }
 
     public static function onUpdate(): UpdatePolicy
@@ -167,7 +167,7 @@ final class SluggableConfig
 
     public static function bindingKeyFallback(): bool
     {
-        return Config::boolean('sluggable.binding.key_fallback');
+        return self::validator()->boolean('sluggable.binding.key_fallback');
     }
 
     public static function maxSourceLength(): int
@@ -197,12 +197,12 @@ final class SluggableConfig
 
     public static function historyEnabled(): bool
     {
-        return Config::boolean('sluggable.history.enabled');
+        return self::validator()->boolean('sluggable.history.enabled');
     }
 
     public static function historyRedirect(): bool
     {
-        return Config::boolean('sluggable.history.redirect', true);
+        return self::validator()->boolean('sluggable.history.redirect', true);
     }
 
     public static function historyRedirectStatus(): int
@@ -218,7 +218,7 @@ final class SluggableConfig
 
     public static function historyAvoidReuse(): bool
     {
-        return Config::boolean('sluggable.history.avoid_reuse');
+        return self::validator()->boolean('sluggable.history.avoid_reuse');
     }
 
     public static function historyTable(): string

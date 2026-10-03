@@ -159,8 +159,10 @@ return [
 | `history.prune_after_days` | `null` | `SLUGGABLE_HISTORY_PRUNE_DAYS` | prune age; `null` keeps forever |
 | `key_type` | `bigint` | `SLUGGABLE_KEY_TYPE` | primary-key type of the slugged models (`bigint`/`uuid`/`ulid`) |
 
-Enum-valued keys are validated: a typo throws `InvalidSlugDefinitionException` instead of silently
-falling back.
+Enum, integer and boolean keys are validated: a typo (say `SLUGGABLE_HISTORY=disabled`) throws
+`InvalidSlugDefinitionException` instead of silently falling back. Switches accept
+`true`/`false`, `1`/`0`, `on`/`off` and `yes`/`no`; an unrecognized `key_type` throws the toolkit's
+`InvalidConfigurationException`.
 
 ## Usage
 
