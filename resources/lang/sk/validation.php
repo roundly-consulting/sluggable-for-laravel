@@ -8,5 +8,5 @@ return [
     'format' => 'Pole :attribute musí obsahovať platný slug (malé písmená, číslice a oddeľovače).',
     'too_long' => 'Pole :attribute môže mať najviac :max znakov.',
     'reserved' => 'Hodnota poľa :attribute je rezervovaná a nemožno ju použiť.',
-    'locked' => 'Pole :attribute už nie je možné zmeniť.',
+    'locked' => 'Slug [:attribute] v modeli [:model] je uzamknutý a nemožno ho zmeniť; ak ho chcete zmeniť, vykonajte zmenu v rámci Slugs::unlocked().',
 ];

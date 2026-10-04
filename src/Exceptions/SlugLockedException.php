@@ -10,12 +10,11 @@ final class SlugLockedException extends SluggableException
 {
     public static function forColumn(Model $model, string $column, ?string $locale): self
     {
-        $where = $locale === null ? "[{$column}]" : "[{$column}.{$locale}]";
+        $message = trans('sluggable::validation.locked', [
+            'attribute' => $locale === null ? $column : "{$column}.{$locale}",
+            'model' => $model::class,
+        ]);
 
-        return new self(sprintf(
-            'The slug %s on [%s] is locked and cannot be changed; wrap the change in Slugs::unlocked() to override.',
-            $where,
-            $model::class,
-        ));
+        return new self(is_string($message) ? $message : 'sluggable::validation.locked');
     }
 }

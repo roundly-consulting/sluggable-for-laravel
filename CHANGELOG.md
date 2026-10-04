@@ -6,6 +6,11 @@ All notable changes to `sluggable-for-laravel` are documented in this file. The 
 
 ## Unreleased
 
+### Fixed
+
+- `SlugLockedException` now reads its message from the `sluggable::validation.locked` translation, so
+  the locked-slug error is shown in the current locale (English and Slovak ship).
+
 ## 1.0.1 - 2026-10-04
 
 ### Changed

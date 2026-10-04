@@ -197,6 +197,27 @@ it('locks slugs while lockWhen holds and throws on manual changes', function ():
         ->and(Slugs::isUnlocked())->toBeFalse();
 });
 
+it('explains a locked slug in the current locale', function (): void {
+    definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->locked());
+
+    $article = Article::query()->create(['name' => 'Fixed']);
+
+    expect(fn () => $article->update(['slug' => 'manual']))->toThrow(
+        SlugLockedException::class,
+        'The slug [slug] on ['.Article::class.'] is locked and cannot be changed; wrap the change in Slugs::unlocked() to override.',
+    );
+
+    app()->setLocale('sk');
+
+    expect(fn () => $article->update(['slug' => 'manual']))->toThrow(
+        SlugLockedException::class,
+        'Slug [slug] v modeli ['.Article::class.'] je uzamknutý a nemožno ho zmeniť; ak ho chcete zmeniť, vykonajte zmenu v rámci Slugs::unlocked().',
+    );
+
+    expect(SlugLockedException::forColumn($article, 'slug', 'de')->getMessage())
+        ->toBe('Slug [slug.de] v modeli ['.Article::class.'] je uzamknutý a nemožno ho zmeniť; ak ho chcete zmeniť, vykonajte zmenu v rámci Slugs::unlocked().');
+});
+
 it('treats a locked() definition as always locked on update', function (): void {
     definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->locked()->onUpdate(UpdatePolicy::Always));
 
