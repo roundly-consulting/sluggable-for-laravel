@@ -6,6 +6,13 @@ All notable changes to `sluggable-for-laravel` are documented in this file. The 
 
 ## Unreleased
 
+## 1.1.0 - 2026-10-05
+
+### Changed
+
+- Documentation: the README hero image uses an absolute URL, so it renders on Packagist and other
+  sites.
+
 ### Fixed
 
 - A `ManualSlugPolicy::Strict` manual slug longer than the definition's `maxLength` now throws
