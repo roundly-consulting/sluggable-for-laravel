@@ -85,7 +85,8 @@ final readonly class SlugGenerator
                 $last = min($attempt + $definition->probeBatch - 1, $definition->sequentialProbes);
 
                 for ($i = $attempt; $i <= $last; $i++) {
-                    $batch[] = $this->compose($model, $definition, $locale, $seed, $definition->suffixGenerator->suffix($base, $i, $definition));
+                    $suffix = Slugger::collisionSuffix($definition->suffixGenerator->suffix($base, $i, $definition), $definition->format);
+                    $batch[] = $this->compose($model, $definition, $locale, $seed, $suffix);
                 }
 
                 $taken = $this->checker->taken($context, $definition, $locale, $batch);

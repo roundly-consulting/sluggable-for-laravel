@@ -48,7 +48,8 @@ final class Slugger
 
     /**
      * Steps 10–11: join `prefix · body · suffix · collision`, shrinking only the body so the
-     * whole value fits `maxLength` — affixes and the collision suffix are never cut.
+     * whole value fits `maxLength` — affixes and the collision suffix are never cut, so parts
+     * that leave no room for the body throw rather than overflow `maxLength`.
      */
     public static function compose(string $body, SlugFormat $format, string $prefix = '', string $suffix = '', ?string $collision = null): string
     {
@@ -63,6 +64,10 @@ final class Slugger
             }
         }
 
+        if ($fixed >= $format->maxLength) {
+            throw SlugGenerationException::noRoomForBody($fixed, $format->maxLength);
+        }
+
         $body = Truncator::truncate($body, max(1, $format->maxLength - $fixed), $separator);
 
         $parts = array_filter(
@@ -71,6 +76,19 @@ final class Slugger
         );
 
         return implode($separator, $parts);
+    }
+
+    /**
+     * A custom collision suffix, validated like a custom slugger's output so it cannot emit URL
+     * syntax (`/`, `?`, whitespace, …).
+     */
+    public static function collisionSuffix(string $suffix, SlugFormat $format): string
+    {
+        if (! self::isAllowed($suffix, $format)) {
+            throw SlugGenerationException::invalidSuffix($suffix);
+        }
+
+        return $suffix;
     }
 
     public static function isReserved(string $value, SlugFormat $format): bool
@@ -165,14 +183,19 @@ final class Slugger
             throw SlugGenerationException::invalidCustomOutput(get_debug_type($output));
         }
 
-        $marks = $format->unicode ? '\pM' : '';
-        $allowed = '/^[\pL\pN'.$marks.preg_quote($format->separator, '/').']*$/Du';
-
-        if (preg_match($allowed, $output) !== 1) {
+        if (! self::isAllowed($output, $format)) {
             throw SlugGenerationException::invalidCustomOutput($output);
         }
 
         return Truncator::trimSeparator($output, $format->separator);
+    }
+
+    /** Only letters, numbers (marks in unicode mode) and the separator. */
+    private static function isAllowed(string $value, SlugFormat $format): bool
+    {
+        $marks = $format->unicode ? '\pM' : '';
+
+        return preg_match('/^[\pL\pN'.$marks.preg_quote($format->separator, '/').']*$/Du', $value) === 1;
     }
 
     /** Step 9: keep the first `maxWords` separator-delimited words. */

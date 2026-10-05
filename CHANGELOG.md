@@ -14,6 +14,11 @@ All notable changes to `sluggable-for-laravel` are documented in this file. The 
 - `avoidHistoricalSlugs()` on a scoped definition (`uniqueWithin()` / `uniqueWhere()`) now only avoids
   slugs retired inside the same scope, so one tenant renaming a page no longer pushes another tenant's
   new page to `about-2`.
+- A custom collision suffix (`suffixUsing()`) is now validated like custom slugger output, so it can no
+  longer put `/`, `?`, whitespace or other URL syntax into a slug; it throws `SlugGenerationException`
+  instead.
+- Closure prefixes/suffixes and collision suffixes that leave no room for the slug body now throw
+  `SlugGenerationException` instead of producing a slug longer than `maxLength`.
 
 ## 1.0.2 - 2026-10-04
 

@@ -39,6 +39,16 @@ final class SlugGenerationException extends SluggableException
         return new self(sprintf('The custom slugger returned [%s], which is not a URL-safe slug.', mb_substr($output, 0, 80)));
     }
 
+    public static function invalidSuffix(string $suffix): self
+    {
+        return new self(sprintf('The custom collision suffix [%s] is not URL-safe: use letters, numbers and the separator only.', mb_substr($suffix, 0, 80)));
+    }
+
+    public static function noRoomForBody(int $fixed, int $maxLength): self
+    {
+        return new self(sprintf('The prefix, suffix and collision suffix of a slug take %d of its %d characters (maxLength), leaving no room for the slug itself.', $fixed, $maxLength));
+    }
+
     public static function unsafeValue(Model $model, string $column, ?string $locale): self
     {
         return new self(sprintf('The slug given for %s on [%s] contains whitespace, a control character, "/", "?", "#" or "%%", or is a "." / ".." dot segment.', self::where($column, $locale), $model::class));

@@ -83,6 +83,33 @@ it('applies static and closure affixes without cutting them', function (): void 
         ->and(mb_strlen((string) $slug))->toBeLessThanOrEqual(20);
 });
 
+it('rejects a custom collision suffix that is not URL-safe', function (): void {
+    definitionFor(PlainThing::class, SlugDefinition::for('slug')->from('name')->suffixUsing(fn (string $base, int $attempt): string => "Copy {$attempt}/x"));
+
+    expect(PlainThing::query()->create(['name' => 'Chair'])->slug)->toBe('chair')
+        ->and(fn () => PlainThing::query()->create(['name' => 'Chair']))
+        ->toThrow(SlugGenerationException::class, 'The custom collision suffix [Copy 1/x] is not URL-safe')
+        ->and(PlainThing::query()->pluck('slug')->all())->toBe(['chair']);
+});
+
+it('rejects closure affixes and collision suffixes that leave no room for the slug', function (SlugDefinition $definition, int $creates): void {
+    definitionFor(PlainThing::class, $definition->from('name'));
+
+    expect(function () use ($creates): void {
+        foreach (range(1, $creates) as $ignored) {
+            PlainThing::query()->create(['name' => 'Chair']);
+        }
+    })->toThrow(SlugGenerationException::class, 'leaving no room for the slug');
+
+    foreach (PlainThing::query()->pluck('slug') as $slug) {
+        expect(mb_strlen((string) $slug))->toBeLessThanOrEqual(255);
+    }
+})->with([
+    'closure prefix' => [fn (): SlugDefinition => SlugDefinition::for('slug')->prefix(fn (): string => str_repeat('a', 300)), 1],
+    'closure suffix' => [fn (): SlugDefinition => SlugDefinition::for('slug')->suffix(fn (): string => str_repeat('a', 255)), 1],
+    'collision suffix' => [fn (): SlugDefinition => SlugDefinition::for('slug')->suffixUsing(fn (): string => str_repeat('x', 300)), 2],
+]);
+
 it('reads a closure source per save', function (): void {
     definitionFor(Article::class, SlugDefinition::for('slug')->from(fn (Article $article, ?string $locale): string => $article->title.' '.$article->code));
 

@@ -49,6 +49,23 @@ it('composes affixes and a collision suffix without cutting them', function (): 
         ->and(mb_strlen($value))->toBeLessThanOrEqual(20);
 });
 
+it('keeps one body character next to fixed parts and throws once they reach maxLength', function (): void {
+    $format = new SlugFormat(maxLength: 10);
+
+    // Each part costs its length plus a separator: 4 + 4 leaves two body characters, 6 + 3 one.
+    expect(Slugger::compose('body', $format, 'pre', 'suf'))->toBe('pre-bo-suf')
+        ->and(Slugger::compose('body', $format, 'prefi', 'su'))->toBe('prefi-b-su')
+        ->and(fn () => Slugger::compose('body', $format, 'prefix', 'suf'))
+        ->toThrow(SlugGenerationException::class, 'take 11 of its 10 characters');
+});
+
+it('validates custom collision suffixes like custom slugger output', function (): void {
+    expect(Slugger::collisionSuffix('copy-2', new SlugFormat))->toBe('copy-2')
+        ->and(Slugger::collisionSuffix('', new SlugFormat))->toBe('')
+        ->and(fn () => Slugger::collisionSuffix('a b', new SlugFormat))->toThrow(SlugGenerationException::class, 'not URL-safe')
+        ->and(fn () => Slugger::collisionSuffix('a?b', new SlugFormat))->toThrow(SlugGenerationException::class, 'not URL-safe');
+});
+
 it('composes a bare body', function (): void {
     expect(Slugger::compose('body', new SlugFormat))->toBe('body')
         ->and(Slugger::compose('body', new SlugFormat, collision: '2'))->toBe('body-2');
