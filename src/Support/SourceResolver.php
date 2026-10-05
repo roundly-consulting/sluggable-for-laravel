@@ -104,6 +104,7 @@ final readonly class SourceResolver
     /**
      * Locales present in any locale-map source; `[current]` when there are none (scalar-only
      * sources, or every map empty — so an empty source still reaches the empty-source policy).
+     * Keys come from stored data, so a malformed one (`EN`, `default`) is skipped, never thrown.
      *
      * @return list<string>
      */
@@ -119,7 +120,7 @@ final readonly class SourceResolver
             $target = $this->target($model, $part);
 
             if ($target->model !== null && LocaleMapAccessor::isLocaleMap($target->model, $target->attribute)) {
-                $locales = [...$locales, ...array_keys(LocaleMapAccessor::read($target->model, $target->attribute))];
+                $locales = [...$locales, ...array_filter(array_keys(LocaleMapAccessor::read($target->model, $target->attribute)), IdentifierGuard::isLocale(...))];
             }
         }
 

@@ -34,6 +34,10 @@ All notable changes to `sluggable-for-laravel` are documented in this file. The 
   and a name that is not an identifier is refused.
 - `sequentialSuffix()` without a start and `#[Slug(suffix: SuffixStrategy::Sequential)]` without
   `suffixStart` now start at the configured `sluggable.defaults.suffix_start` instead of always `2`.
+- A malformed locale key in stored data (a source or slug map key such as `EN` or `default`) is now
+  skipped and kept untouched instead of throwing `InvalidLocaleException` on every save of that row.
+  Locales a developer supplies (`locales()`, `sourceLocale()`, `slugFor()`, per-call `locales:`) still
+  throw.
 
 ## 1.0.2 - 2026-10-04
 

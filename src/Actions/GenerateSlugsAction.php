@@ -109,12 +109,14 @@ final readonly class GenerateSlugsAction
             default => $this->sources->targetLocales($model, $definition),
         };
 
-        $locales = $request->locales !== null ? $targets : array_values(array_unique([...$targets, ...array_keys($current)]));
+        // Keys already in the stored map are data: a malformed one (`EN`, `default`) is left
+        // untouched rather than blocking every save of the row.
+        $locales = $request->locales !== null
+            ? $targets
+            : array_values(array_unique([...$targets, ...array_filter(array_keys($current), IdentifierGuard::isLocale(...))]));
         $map = $current;
 
         foreach ($locales as $locale) {
-            IdentifierGuard::locale($locale);
-
             $value = $current[$locale] ?? null;
             $previous = $original[$locale] ?? null;
 

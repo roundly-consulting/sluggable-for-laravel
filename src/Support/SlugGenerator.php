@@ -133,7 +133,8 @@ final readonly class SlugGenerator
                 }
             }
 
-            $locales = array_values(array_unique([...$this->locales->supported(), ...array_keys($map)]));
+            // A malformed key stored in the map is data, never a locale to probe.
+            $locales = array_values(array_unique([...$this->locales->supported(), ...array_filter(array_keys($map), IdentifierGuard::isLocale(...))]));
         }
 
         return new ProbeContext(

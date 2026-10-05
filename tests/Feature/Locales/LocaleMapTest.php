@@ -67,6 +67,44 @@ it('rejects a hostile target locale', function (): void {
     LocalizedPage::query()->create(['name' => ['en' => 'x']]);
 })->throws(InvalidLocaleException::class);
 
+it('skips malformed locale keys in a stored source map instead of throwing', function (): void {
+    expect(LocalizedPage::query()->create(['name' => ['en' => 'Hi', 'default' => 'Hi']])->slug)->toEqual(['en' => 'hi'])
+        ->and(LocalizedPage::query()->create(['name' => ['EN' => 'Hello']])->slug)->toEqual(['en' => 'hello']);
+});
+
+it('keeps malformed locale keys of a stored slug map byte for byte on an unrelated save', function (string $stray, bool $acrossLocales): void {
+    $definition = SlugDefinition::for('slug')->from('name')->routeKey();
+    definitionFor(LocalizedPage::class, $acrossLocales ? $definition->uniqueAcrossLocales() : $definition);
+
+    $page = LocalizedPage::query()->create(['name' => ['en' => 'Kept']]);
+    $raw = json_encode(['en' => 'kept', $stray => 'Stray Value']);
+    DB::table('localized_pages')->where('id', $page->id)->update(['slug' => $raw]);
+
+    $page = LocalizedPage::query()->findOrFail($page->id);
+    $page->update(['published' => false]);
+    $page->update(['name' => ['en' => 'Kept', 'sk' => 'Nové']]);
+
+    expect($page->fresh()?->slug)->toEqual(['en' => 'kept', $stray => 'Stray Value', 'sk' => 'nove'])
+        ->and($page->fresh()?->published)->toBeFalse();
+})->with([
+    'upper case' => 'EN',
+    'not a locale' => 'default',
+    'hostile' => "en') or 1=1 --",
+])->with(['per locale' => false, 'across locales' => true]);
+
+it('still refuses malformed locales a developer supplies', function (): void {
+    $page = LocalizedPage::query()->create(['name' => ['en' => 'Page']]);
+
+    definitionFor(LocalizedPage::class, SlugDefinition::for('slug')->from('name')->locales(['EN']));
+    expect(fn () => LocalizedPage::query()->create(['name' => ['en' => 'x']]))->toThrow(InvalidLocaleException::class, '[EN]');
+
+    definitionFor(LocalizedPage::class, SlugDefinition::for('slug')->from('name'));
+    expect(fn () => $page->slugFor('EN'))->toThrow(InvalidLocaleException::class, '[EN]')
+        ->and(fn () => $page->regenerateSlugs(locales: ['default']))->toThrow(InvalidLocaleException::class, '[default]')
+        ->and(fn () => SlugDefinition::for('slug')->from('name')->sourceLocale('EN')->resolve(new LocalizedPage))
+        ->toThrow(InvalidLocaleException::class, '[EN]');
+});
+
 it('feeds a scalar source to every locale', function (): void {
     definitionFor(LocalizedPage::class, SlugDefinition::for('slug')->from(fn (LocalizedPage $page, ?string $locale): string => "Page {$locale}")->locales(['en', 'sk']));
 
