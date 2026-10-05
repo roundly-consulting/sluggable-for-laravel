@@ -32,6 +32,8 @@ All notable changes to `sluggable-for-laravel` are documented in this file. The 
 - The slug history migration now resolves `sluggable.history.table` like the history model does, so a
   blank `SLUGGABLE_HISTORY_TABLE=` creates `slug_history` instead of failing with an empty table name,
   and a name that is not an identifier is refused.
+- `sequentialSuffix()` without a start and `#[Slug(suffix: SuffixStrategy::Sequential)]` without
+  `suffixStart` now start at the configured `sluggable.defaults.suffix_start` instead of always `2`.
 
 ## 1.0.2 - 2026-10-04
 

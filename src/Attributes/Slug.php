@@ -157,7 +157,7 @@ final readonly class Slug
         };
 
         match ($this->suffix) {
-            SuffixStrategy::Sequential => $definition->sequentialSuffix($this->suffixStart ?? 2),
+            SuffixStrategy::Sequential => $definition->sequentialSuffix($this->suffixStart),
             SuffixStrategy::Random => $definition->randomSuffix(),
             // A custom generator is a closure or object, which attribute arguments cannot hold.
             SuffixStrategy::Custom => throw InvalidSlugDefinitionException::missingSuffixGenerator($this->column),

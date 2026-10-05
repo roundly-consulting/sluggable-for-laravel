@@ -130,3 +130,18 @@ it('lets the override win silently in production', function (): void {
         app()->instance('env', 'testing');
     }
 });
+
+it('starts #[Slug(suffix: Sequential)] at the configured suffix_start unless suffixStart is given', function (): void {
+    config(['sluggable.defaults.suffix_start' => 1]);
+
+    $first = function (Slug $attribute): string {
+        $resolved = $attribute->toDefinition()->resolve(new Article);
+
+        return $resolved->suffixGenerator->suffix('x', 1, $resolved);
+    };
+
+    expect($first(new Slug(suffix: SuffixStrategy::Sequential)))->toBe('1')
+        ->and($first(new Slug(suffix: SuffixStrategy::Sequential, suffixStart: 5)))->toBe('5')
+        ->and($first(new Slug(suffixStart: 5)))->toBe('5')
+        ->and($first(new Slug))->toBe('1');
+});

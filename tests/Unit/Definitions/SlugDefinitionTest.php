@@ -236,3 +236,18 @@ it('matches values a suffix strategy could have produced', function (): void {
         ->and(preg_match($custom->suffixPattern('chair'), 'chair-anything'))->toBe(1)
         ->and(preg_match($custom->suffixPattern('chair'), 'table'))->toBe(0);
 });
+
+it('starts sequentialSuffix() at the configured suffix_start unless a start is given', function (): void {
+    config(['sluggable.defaults.suffix_start' => 1]);
+
+    $first = function (SlugDefinition $definition): string {
+        $resolved = $definition->resolve(new Article);
+
+        return $resolved->suffixGenerator->suffix('x', 1, $resolved);
+    };
+
+    expect($first(SlugDefinition::for('slug')))->toBe('1')
+        ->and($first(SlugDefinition::for('slug')->sequentialSuffix()))->toBe('1')
+        ->and($first(SlugDefinition::for('slug')->sequentialSuffix(5)))->toBe('5')
+        ->and($first(SlugDefinition::for('slug')->sequentialSuffix(start: 5)->sequentialSuffix()))->toBe('1');
+});

@@ -340,7 +340,8 @@ final class SlugDefinition
         return $this->includeTrashed(false);
     }
 
-    public function sequentialSuffix(int $start = 2): static
+    /** `-2`, `-3`, …; the first number defaults to `sluggable.defaults.suffix_start`. */
+    public function sequentialSuffix(?int $start = null): static
     {
         $this->suffixStrategy = SuffixStrategy::Sequential;
         $this->suffixStart = $start;
