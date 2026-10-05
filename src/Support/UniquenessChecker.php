@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use RoundlyConsulting\Sluggable\DataTransferObjects\ProbeContext;
 use RoundlyConsulting\Sluggable\Definitions\ResolvedSlugDefinition;
 use RoundlyConsulting\Sluggable\Enums\LocaleUniqueness;
+use RoundlyConsulting\Sluggable\Enums\Uniqueness;
 
 /**
  * Decides which slug candidates are taken — one semantics for generation, collision retries and
@@ -107,18 +108,7 @@ final class UniquenessChecker
     private function baseQuery(ProbeContext $context, ResolvedSlugDefinition $definition): Builder
     {
         $model = $context->model;
-        $query = $model->newQueryWithoutScopes();
-
-        foreach ($definition->scopeColumns as $scopeColumn) {
-            $value = $context->scope[$scopeColumn] ?? null;
-            $qualified = $model->qualifyColumn($scopeColumn);
-
-            $value === null ? $query->whereNull($qualified) : $query->where($qualified, $value);
-        }
-
-        if ($definition->scopeClosure !== null) {
-            ($definition->scopeClosure)($query, $context->scopeModel ?? $model);
-        }
+        $query = $this->scopedQuery($context, $definition);
 
         if (! $definition->includeTrashed && in_array(SoftDeletes::class, class_uses_recursive($model), true)) {
             $query->whereNull($model->qualifyColumn($this->deletedAtColumn($model)));
@@ -136,7 +126,34 @@ final class UniquenessChecker
     }
 
     /**
-     * Retired slugs of other rows of the same type, when the definition avoids reusing them.
+     * Every row in the probed model's uniqueness scope (scope columns and closure), trashed rows
+     * and the model itself included.
+     *
+     * @return Builder<Model>
+     */
+    private function scopedQuery(ProbeContext $context, ResolvedSlugDefinition $definition): Builder
+    {
+        $model = $context->model;
+        $query = $model->newQueryWithoutScopes();
+
+        foreach ($definition->scopeColumns as $scopeColumn) {
+            $value = $context->scope[$scopeColumn] ?? null;
+            $qualified = $model->qualifyColumn($scopeColumn);
+
+            $value === null ? $query->whereNull($qualified) : $query->where($qualified, $value);
+        }
+
+        if ($definition->scopeClosure !== null) {
+            ($definition->scopeClosure)($query, $context->scopeModel ?? $model);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Retired slugs of other rows of the same type, when the definition avoids reusing them. A
+     * scoped definition only counts rows of the same scope: another scope may hold the slug live,
+     * and history redirects never cross scopes either.
      *
      * @param  list<string>  $candidates
      * @return list<string>
@@ -157,7 +174,30 @@ final class UniquenessChecker
             $query->where('sluggable_id', '!=', $context->ignoreKey);
         }
 
-        return $this->strings($query->pluck('slug')->all());
+        if ($definition->uniqueness !== Uniqueness::Scoped) {
+            return $this->strings($query->pluck('slug')->all());
+        }
+
+        // Two small queries rather than a subquery: the history table may live on another connection.
+        $retired = $query->toBase()->get(['slug', 'sluggable_id']);
+
+        if ($retired->isEmpty()) {
+            return [];
+        }
+
+        $model = $context->model;
+        $owners = $this->strings(
+            $this->scopedQuery($context, $definition)
+                ->whereKey($retired->pluck('sluggable_id')->unique()->values()->all())
+                ->toBase()
+                ->pluck($model->getQualifiedKeyName())
+                ->all(),
+        );
+
+        return $this->strings($retired
+            ->filter(fn (object $row): bool => in_array((string) $row->sluggable_id, $owners, true))
+            ->pluck('slug')
+            ->all());
     }
 
     /**

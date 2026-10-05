@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Carbon;
@@ -22,6 +23,7 @@ use RoundlyConsulting\Sluggable\Tests\Fixtures\ClinicProduct;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\LocalizedPage;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\PlainThing;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\ScopedArticle;
+use RoundlyConsulting\Sluggable\Tests\Fixtures\ScopedItem;
 
 beforeEach(function (): void {
     definitionFor(Article::class, SlugDefinition::for('slug')->from('name')->routeKey()->regenerateOnUpdate()->keepHistory());
@@ -185,6 +187,26 @@ it('avoids reusing another model\'s retired slug when asked', function (): void 
     $first->update(['name' => 'Classic']);
     expect($first->slug)->toBe('classic');
 });
+
+it('avoids only retired slugs from the same uniqueness scope', function (SlugDefinition $definition): void {
+    definitionFor(ScopedItem::class, $definition->from('name')->onUpdate(UpdatePolicy::WhenSourceChanges)->keepHistory()->avoidHistoricalSlugs());
+
+    $retiring = ScopedItem::query()->create(['name' => 'About', 'tenant_id' => 1]);
+    ScopedItem::query()->create(['name' => 'About', 'tenant_id' => 2]);
+    $retiring->update(['name' => 'About Us']);
+
+    expect($retiring->slug)->toBe('about-us')
+        ->and(SlugHistory::query()->pluck('slug')->all())->toBe(['about'])
+        // Another scope never saw tenant 1's slug, so it is free there.
+        ->and(ScopedItem::query()->create(['name' => 'About', 'tenant_id' => 3])->slug)->toBe('about')
+        // Inside tenant 1 the retired slug still redirects, so it stays off limits.
+        ->and(ScopedItem::query()->create(['name' => 'About', 'tenant_id' => 1])->slug)->toBe('about-2');
+})->with([
+    'scope columns' => fn (): SlugDefinition => SlugDefinition::for('slug')->uniqueWithin('tenant_id'),
+    'scope closure' => fn (): SlugDefinition => SlugDefinition::for('slug')->uniqueWhere(
+        fn (Builder $query, ScopedItem $item) => $query->where('tenant_id', $item->tenant_id),
+    ),
+]);
 
 it('keeps history on soft delete and purges it on force delete', function (): void {
     $article = Article::query()->create(['name' => 'Kept']);

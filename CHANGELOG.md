@@ -11,6 +11,9 @@ All notable changes to `sluggable-for-laravel` are documented in this file. The 
 - A `ManualSlugPolicy::Strict` manual slug longer than the definition's `maxLength` now throws
   `SlugGenerationException` instead of being stored: such a slug could never route-bind and overflows
   the column on MySQL/PostgreSQL.
+- `avoidHistoricalSlugs()` on a scoped definition (`uniqueWithin()` / `uniqueWhere()`) now only avoids
+  slugs retired inside the same scope, so one tenant renaming a page no longer pushes another tenant's
+  new page to `about-2`.
 
 ## 1.0.2 - 2026-10-04
 
