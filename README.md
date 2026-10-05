@@ -27,8 +27,8 @@ already have.
 
 ## Installation
 
-Requires PHP 8.4 and Laravel 12 or 13. The unique-index DDL needs PostgreSQL 12+, MySQL 8.0.23+ /
-MariaDB 10.3.3+ or SQLite 3.38+; generation and querying work on every Laravel driver.
+Requires PHP 8.4 and Laravel 12 or 13. Supported databases: PostgreSQL 12+ and MySQL 8.0.23+ /
+MariaDB 10.3.3+ (SQLite 3.38+ for tests). SQL Server is not supported.
 
 ```bash
 composer require roundly-consulting/sluggable-for-laravel
