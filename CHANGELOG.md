@@ -6,6 +6,12 @@ All notable changes to `sluggable-for-laravel` are documented in this file. The 
 
 ## Unreleased
 
+### Fixed
+
+- A `ManualSlugPolicy::Strict` manual slug longer than the definition's `maxLength` now throws
+  `SlugGenerationException` instead of being stored: such a slug could never route-bind and overflows
+  the column on MySQL/PostgreSQL.
+
 ## 1.0.2 - 2026-10-04
 
 ### Fixed

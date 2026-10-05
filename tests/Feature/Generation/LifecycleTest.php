@@ -13,6 +13,7 @@ use RoundlyConsulting\Sluggable\Exceptions\SlugLockedException;
 use RoundlyConsulting\Sluggable\Facades\Slugs;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\Article;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\LocalizedPage;
+use RoundlyConsulting\Sluggable\Tests\Fixtures\PlainThing;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\ScopedItem;
 
 it('keeps an existing slug on update by default (IfEmpty)', function (): void {
@@ -171,6 +172,25 @@ it('throws on a taken strict manual slug', function (): void {
 
     Article::query()->create(['slug' => 'sidebar']);
 })->throws(SlugAlreadyTakenException::class, 'already taken');
+
+it('rejects a strict manual slug longer than maxLength, which could never bind', function (): void {
+    definitionFor(PlainThing::class, SlugDefinition::for('slug')->from('name')->maxLength(100)->manual(ManualSlugPolicy::Strict)->routeKey());
+
+    $fits = PlainThing::query()->create(['slug' => str_repeat('a', 100)]);
+
+    expect($fits->slug)->toBe(str_repeat('a', 100))
+        ->and($fits->resolveRouteBinding(str_repeat('a', 100))?->getKey())->toBe($fits->getKey())
+        ->and(fn () => PlainThing::query()->create(['slug' => str_repeat('b', 101)]))
+        ->toThrow(SlugGenerationException::class, 'is 101 characters long; maxLength allows 100')
+        ->and(PlainThing::query()->count())->toBe(1);
+});
+
+it('rejects a strict manual locale slug longer than maxLength', function (): void {
+    definitionFor(LocalizedPage::class, SlugDefinition::for('slug')->from('name')->maxLength(100)->manual(ManualSlugPolicy::Strict));
+
+    expect(fn () => LocalizedPage::query()->create(['name' => ['en' => 'Page'], 'slug' => ['en' => str_repeat('b', 150)]]))
+        ->toThrow(SlugGenerationException::class, '[slug.en]');
+});
 
 it('applies the manual policy to manual changes on update', function (): void {
     Article::query()->create(['name' => 'One']);

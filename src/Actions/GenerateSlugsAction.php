@@ -357,8 +357,16 @@ final readonly class GenerateSlugsAction
             throw SlugGenerationException::unsafeValue($context->model, $definition->column, $locale);
         }
 
-        if ($definition->manual === ManualSlugPolicy::Strict && $this->checker->isTaken($context, $definition, $locale, $value)) {
-            throw SlugAlreadyTakenException::forManual($context->model, $definition->column, $locale, $value);
+        if ($definition->manual === ManualSlugPolicy::Strict) {
+            // Strict stores the value as given, so nothing else bounds it: an over-length slug
+            // would never bind, and overflows the column on MySQL/PostgreSQL.
+            if (mb_strlen($value) > $definition->format->maxLength) {
+                throw SlugGenerationException::tooLong($context->model, $definition->column, $locale, mb_strlen($value), $definition->format->maxLength);
+            }
+
+            if ($this->checker->isTaken($context, $definition, $locale, $value)) {
+                throw SlugAlreadyTakenException::forManual($context->model, $definition->column, $locale, $value);
+            }
         }
 
         return new SlugSeed($value, false);

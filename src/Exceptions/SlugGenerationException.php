@@ -44,6 +44,11 @@ final class SlugGenerationException extends SluggableException
         return new self(sprintf('The slug given for %s on [%s] contains whitespace, a control character, "/", "?", "#" or "%%", or is a "." / ".." dot segment.', self::where($column, $locale), $model::class));
     }
 
+    public static function tooLong(Model $model, string $column, ?string $locale, int $length, int $maxLength): self
+    {
+        return new self(sprintf('The slug given for %s on [%s] is %d characters long; maxLength allows %d.', self::where($column, $locale), $model::class, $length, $maxLength));
+    }
+
     private static function where(string $column, ?string $locale): string
     {
         return $locale === null ? "[{$column}]" : "[{$column}.{$locale}]";
