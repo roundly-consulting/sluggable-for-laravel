@@ -14,6 +14,17 @@ use RoundlyConsulting\Sluggable\Tests\Fixtures\LocalizedPage;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\MultiSlugThing;
 use RoundlyConsulting\Sluggable\Tests\Fixtures\ScopedArticle;
 
+it('accepts a slug array that is not a list in whereSlugIn()', function (): void {
+    $article = Article::query()->create(['name' => 'Y']);
+    $page = LocalizedPage::query()->create(['name' => ['en' => 'Y']]);
+
+    expect(Article::query()->whereSlugIn([1 => 'y'])->sole()->is($article))->toBeTrue()
+        ->and(Article::query()->whereSlugIn(array_filter(['', 'y']))->sole()->is($article))->toBeTrue()
+        ->and(Article::query()->whereSlugIn(['a' => 'nope', 'b' => 'y'])->sole()->is($article))->toBeTrue()
+        ->and(LocalizedPage::query()->whereSlugIn([1 => 'y'])->sole()->is($page))->toBeTrue()
+        ->and(LocalizedPage::query()->whereSlugIn([1 => 'y'], locale: 'en')->sole()->is($page))->toBeTrue();
+});
+
 it('finds string slugs by scope and finder', function (): void {
     $article = Article::query()->create(['name' => 'Find Me']);
 

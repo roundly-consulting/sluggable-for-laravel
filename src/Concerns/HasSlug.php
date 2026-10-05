@@ -158,7 +158,7 @@ trait HasSlug
 
     /**
      * @param  Builder<static>  $query
-     * @param  list<string>  $slugs
+     * @param  array<array-key, string>  $slugs
      */
     public function scopeWhereSlugIn(Builder $query, array $slugs, ?string $column = null, ?string $locale = null): void
     {
@@ -401,10 +401,12 @@ trait HasSlug
 
     /**
      * @param  Builder<*>|Relation<*, *, *>  $query
-     * @param  list<string>  $slugs
+     * @param  array<array-key, string>  $slugs  any keys (`array_filter()` output included)
      */
     protected function sluggableWhere(Builder|Relation $query, ResolvedSlugDefinition $definition, string $qualified, array $slugs, ?string $locale): void
     {
+        $slugs = array_values($slugs);
+
         if (! $definition->isLocalized()) {
             if ($locale !== null) {
                 throw InvalidSlugDefinitionException::localeOptionOnStringColumn($definition->column, 'locale');

@@ -24,6 +24,8 @@ All notable changes to `sluggable-for-laravel` are documented in this file. The 
   errors or truncates in its index; above 768 characters (the utf8mb4 index limit) planning throws
   `InvalidSlugDefinitionException`. `SlugIndexSpec` and `SlugIndexSpec::localeMap()` take an optional
   `maxLength`, which `SlugIndexes::specsFor()` fills in.
+- `whereSlugIn()` accepts an array that is not a list (for example `array_filter()` output) instead of
+  failing with "Undefined array key 0".
 
 ## 1.0.2 - 2026-10-04
 
