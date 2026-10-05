@@ -29,6 +29,9 @@ All notable changes to `sluggable-for-laravel` are documented in this file. The 
 - A suffixed slug that must change after a scope change or a restore (`excludeTrashed()`) is now
   re-suffixed from its source (`chair-2` → `chair` when that is free) instead of gaining a second
   suffix (`chair-2-2`).
+- The slug history migration now resolves `sluggable.history.table` like the history model does, so a
+  blank `SLUGGABLE_HISTORY_TABLE=` creates `slug_history` instead of failing with an empty table name,
+  and a name that is not an identifier is refused.
 
 ## 1.0.2 - 2026-10-04
 

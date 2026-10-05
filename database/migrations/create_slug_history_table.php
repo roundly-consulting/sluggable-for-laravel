@@ -6,12 +6,15 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use RoundlyConsulting\PackageToolkit\Enums\KeyType;
+use RoundlyConsulting\Sluggable\Support\SluggableConfig;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        $name = (string) config('sluggable.history.table', 'slug_history');
+        // The same resolution as the history model: blank means the default, and the name must be
+        // an identifier.
+        $name = SluggableConfig::historyTable();
 
         // The morph id must match the primary key type of the SLUGGED models.
         $keyType = KeyType::fromConfig('sluggable.key_type');
