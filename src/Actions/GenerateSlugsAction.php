@@ -327,7 +327,7 @@ final readonly class GenerateSlugsAction
         }
 
         $key = $locale ?? Sluggable::SINGLE_KEY;
-        $seed = $this->state->seed($model, $definition->column, $key) ?? new SlugSeed($current, false);
+        $seed = $this->state->seed($model, $definition->column, $key) ?? $this->unrecordedSeed($model, $definition, $locale, $current);
         $value = $this->generator->unique($context, $definition, $locale, $seed);
 
         return $this->record(
@@ -340,6 +340,26 @@ final readonly class GenerateSlugsAction
             $seed,
             $changes,
         );
+    }
+
+    /**
+     * The seed of a value no save in this request wrote (a re-scope or a restore of a freshly
+     * loaded model): the source body when the value is that body's base or a suffixed form of it,
+     * so `chair-2` re-suffixes from `chair` instead of becoming `chair-2-2`; else the value itself.
+     */
+    private function unrecordedSeed(Model $model, ResolvedSlugDefinition $definition, ?string $locale, string $current): SlugSeed
+    {
+        $body = $this->generator->body($model, $definition, $locale);
+
+        if ($body !== '') {
+            $seed = new SlugSeed($body, true);
+
+            if (preg_match($definition->suffixPattern($this->generator->compose($model, $definition, $locale, $seed)), $current) === 1) {
+                return $seed;
+            }
+        }
+
+        return new SlugSeed($current, false);
     }
 
     /**

@@ -26,6 +26,9 @@ All notable changes to `sluggable-for-laravel` are documented in this file. The 
   `maxLength`, which `SlugIndexes::specsFor()` fills in.
 - `whereSlugIn()` accepts an array that is not a list (for example `array_filter()` output) instead of
   failing with "Undefined array key 0".
+- A suffixed slug that must change after a scope change or a restore (`excludeTrashed()`) is now
+  re-suffixed from its source (`chair-2` → `chair` when that is free) instead of gaining a second
+  suffix (`chair-2-2`).
 
 ## 1.0.2 - 2026-10-04
 

@@ -135,3 +135,45 @@ it('throws once every candidate is exhausted', function (): void {
         Str::createRandomStringsNormally();
     }
 })->throws(SlugGenerationException::class, 'every probed candidate');
+
+it('re-suffixes a moved slug from its source, not from its old suffix', function (): void {
+    ScopedItem::query()->create(['name' => 'Chair', 'tenant_id' => 1]);
+    $suffixed = ScopedItem::query()->create(['name' => 'Chair', 'tenant_id' => 1]);
+    $freed = ScopedItem::query()->create(['name' => 'Chair', 'tenant_id' => 2]);
+    ScopedItem::query()->create(['name' => 'Chair', 'tenant_id' => 2]);
+    $freed->forceDelete();
+
+    // A fresh instance carries no seed from the save that wrote `chair-2`.
+    $moving = ScopedItem::query()->findOrFail($suffixed->getKey());
+    $moving->update(['tenant_id' => 2]);
+
+    expect($suffixed->slug)->toBe('chair-2')
+        ->and($moving->slug)->toBe('chair');
+});
+
+it('re-suffixes a restored slug from its source, not from its old suffix (excludeTrashed)', function (): void {
+    definitionFor(ScopedItem::class, SlugDefinition::for('slug')->from('name')->uniqueWithin('tenant_id')->excludeTrashed());
+    // The fixture's include-trashed index disagrees with an exclude-trashed definition.
+    dropSlugIndex('scoped_items', 'scoped_items_slug_slug_unique');
+
+    $first = ScopedItem::query()->create(['name' => 'Chair', 'tenant_id' => 1]);
+    $trashed = ScopedItem::query()->create(['name' => 'Chair', 'tenant_id' => 1]);
+    $trashed->delete();
+    $reused = ScopedItem::query()->create(['name' => 'Chair', 'tenant_id' => 1]);
+    $first->forceDelete();
+
+    $restoring = ScopedItem::withTrashed()->findOrFail($trashed->getKey());
+    $restoring->restore();
+
+    expect($reused->slug)->toBe('chair-2')
+        ->and($restoring->fresh()?->slug)->toBe('chair');
+});
+
+it('keeps re-suffixing a moved manual slug from the slug itself', function (): void {
+    ScopedItem::query()->create(['name' => 'Chair', 'slug' => 'my-pick', 'tenant_id' => 2]);
+    $item = ScopedItem::query()->create(['name' => 'Chair', 'slug' => 'my-pick', 'tenant_id' => 1]);
+
+    $item->update(['tenant_id' => 2]);
+
+    expect($item->slug)->toBe('my-pick-2');
+});
