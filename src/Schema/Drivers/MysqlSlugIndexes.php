@@ -8,6 +8,7 @@ use Illuminate\Database\Connection;
 use RoundlyConsulting\Sluggable\DataTransferObjects\PlannedIndex;
 use RoundlyConsulting\Sluggable\DataTransferObjects\SlugIndexSpec;
 use RoundlyConsulting\Sluggable\Enums\SlugStorage;
+use RoundlyConsulting\Sluggable\Exceptions\InvalidSlugDefinitionException;
 use RoundlyConsulting\Sluggable\Support\IndexNames;
 
 /**
@@ -22,6 +23,9 @@ use RoundlyConsulting\Sluggable\Support\IndexNames;
  */
 final class MysqlSlugIndexes implements SlugIndexDriver
 {
+    /** InnoDB's 3072-byte index key limit in utf8mb4 characters. */
+    private const MAX_INDEXED_LENGTH = 768;
+
     public function plan(SlugIndexSpec $spec, Connection $connection, array $locales): array
     {
         $grammar = $connection->getQueryGrammar();
@@ -51,6 +55,7 @@ final class MysqlSlugIndexes implements SlugIndexDriver
             )];
         }
 
+        $length = $this->localeColumnLength($spec);
         $pdo = $connection->getPdo();
         $planned = [];
 
@@ -65,13 +70,32 @@ final class MysqlSlugIndexes implements SlugIndexDriver
                 $name,
                 ["alter table {$table} add unique index {$grammar->wrap($name)} (".implode(', ', [...$scope, $grammar->wrap($generated)]).')'],
                 $generated,
-                "alter table {$table} add column {$grammar->wrap($generated)} varchar(255) collate utf8mb4_bin as "
+                "alter table {$table} add column {$grammar->wrap($generated)} varchar({$length}) collate utf8mb4_bin as "
                 ."(case when {$trashed}json_type(json_extract({$slug}, {$path})) = 'STRING' "
                 ."then json_unquote(json_extract({$slug}, {$path})) end) virtual null invisible",
             );
         }
 
         return $planned;
+    }
+
+    /**
+     * A generated column shorter than the slug errors (strict mode) or truncates on write, and a
+     * truncated copy collides in the index where the app-level probe sees distinct slugs. Never
+     * below 255; above 768 utf8mb4 characters (3072 bytes) InnoDB cannot index it at all.
+     */
+    private function localeColumnLength(SlugIndexSpec $spec): int
+    {
+        $length = max(255, $spec->maxLength ?? 255);
+
+        if ($length > self::MAX_INDEXED_LENGTH) {
+            throw InvalidSlugDefinitionException::invalidOption(
+                'maxLength',
+                'MySQL can index a locale-map slug of at most '.self::MAX_INDEXED_LENGTH." characters, but [{$spec->table}.{$spec->column}] allows {$length}",
+            );
+        }
+
+        return $length;
     }
 
     /** The slug column's own type and collation, so the generated copy compares identically. */

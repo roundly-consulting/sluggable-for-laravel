@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RoundlyConsulting\Sluggable\DataTransferObjects;
 
 use RoundlyConsulting\Sluggable\Enums\SlugStorage;
+use RoundlyConsulting\Sluggable\Exceptions\InvalidSlugDefinitionException;
 use RoundlyConsulting\Sluggable\Support\IdentifierGuard;
 
 /**
@@ -17,6 +18,8 @@ final readonly class SlugIndexSpec
     /**
      * @param  list<string>  $scope
      * @param  list<string>|null  $locales  null = SlugLocales::supported()
+     * @param  int|null  $maxLength  the definition's maxLength; sizes MySQL's per-locale generated
+     *                               columns (null = 255)
      */
     public function __construct(
         public string $table,
@@ -27,7 +30,12 @@ final readonly class SlugIndexSpec
         public ?array $locales = null,
         public ?string $connection = null,
         public string $deletedAtColumn = 'deleted_at',
+        public ?int $maxLength = null,
     ) {
+        if ($maxLength !== null && ($maxLength < 1 || $maxLength > 2048)) {
+            throw InvalidSlugDefinitionException::invalidOption('maxLength', 'use 1-2048 characters');
+        }
+
         IdentifierGuard::identifier($table, 'table');
         IdentifierGuard::identifier($column, 'column');
         IdentifierGuard::identifier($deletedAtColumn, 'column');
@@ -51,8 +59,8 @@ final readonly class SlugIndexSpec
      * @param  list<string>  $scope
      * @param  list<string>|null  $locales
      */
-    public static function localeMap(string $table, string $column = 'slug', array $scope = [], bool $includeTrashed = true, ?array $locales = null, ?string $connection = null, string $deletedAtColumn = 'deleted_at'): self
+    public static function localeMap(string $table, string $column = 'slug', array $scope = [], bool $includeTrashed = true, ?array $locales = null, ?string $connection = null, string $deletedAtColumn = 'deleted_at', ?int $maxLength = null): self
     {
-        return new self($table, $column, SlugStorage::LocaleMap, $scope, $includeTrashed, $locales, $connection, $deletedAtColumn);
+        return new self($table, $column, SlugStorage::LocaleMap, $scope, $includeTrashed, $locales, $connection, $deletedAtColumn, $maxLength);
     }
 }

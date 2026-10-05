@@ -129,6 +129,7 @@ final class SlugIndexes
                 includeTrashed: $definition->includeTrashed,
                 connection: $instance->getConnectionName(),
                 deletedAtColumn: method_exists($instance, 'getDeletedAtColumn') ? (string) $instance->getDeletedAtColumn() : 'deleted_at',
+                maxLength: $definition->format->maxLength,
             );
         }
 

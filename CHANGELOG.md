@@ -19,6 +19,11 @@ All notable changes to `sluggable-for-laravel` are documented in this file. The 
   instead.
 - Closure prefixes/suffixes and collision suffixes that leave no room for the slug body now throw
   `SlugGenerationException` instead of producing a slug longer than `maxLength`.
+- On MySQL/MariaDB, `SlugIndexes` now sizes each locale-map generated column to the definition's
+  `maxLength` (never below 255) instead of a fixed `varchar(255)`, so a longer localized slug no longer
+  errors or truncates in its index; above 768 characters (the utf8mb4 index limit) planning throws
+  `InvalidSlugDefinitionException`. `SlugIndexSpec` and `SlugIndexSpec::localeMap()` take an optional
+  `maxLength`, which `SlugIndexes::specsFor()` fills in.
 
 ## 1.0.2 - 2026-10-04
 
