@@ -155,6 +155,18 @@ final readonly class ResolvedSlugDefinition
         return $this->skipWhen !== null && ($this->skipWhen)($model) === true;
     }
 
+    /**
+     * An existing row loaded without this column (`select('id')`): its stored slug is unknown, so
+     * there is nothing to compare or merge with — generating would overwrite it. Eloquent's own
+     * missing-attribute condition, so a model created in this request still gets its slug.
+     */
+    public function isUnloadedOn(Model $model): bool
+    {
+        return $model->exists
+            && ! $model->wasRecentlyCreated
+            && ! array_key_exists($this->column, $model->getAttributes());
+    }
+
     public function hasScopeColumns(): bool
     {
         return $this->scopeColumns !== [];

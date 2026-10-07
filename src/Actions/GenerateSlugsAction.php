@@ -34,7 +34,8 @@ use RoundlyConsulting\Sluggable\Support\UniquenessChecker;
  * One generation pass over a model: for every definition (in declaration order), and for every
  * target locale of a locale map, apply the lifecycle rules — manual policy, update policy, locks,
  * empty sources, the no-churn fingerprint, and uniqueness re-checks after a scope change or a
- * restore. Only sets attributes; the caller saves.
+ * restore. A column an existing model was loaded without is skipped. Only sets attributes; the
+ * caller saves.
  */
 final readonly class GenerateSlugsAction
 {
@@ -56,7 +57,8 @@ final readonly class GenerateSlugsAction
                 continue;
             }
 
-            if ($definition->shouldSkip($model)) {
+            // A column the model was loaded without is left alone: its stored slug is unknown.
+            if ($definition->isUnloadedOn($model) || $definition->shouldSkip($model)) {
                 continue;
             }
 

@@ -131,6 +131,11 @@ final readonly class SlugLifecycle
         foreach ($this->state->options($model)->definitions as $definition) {
             $column = $definition->column;
 
+            // Generation skipped it, so this save did not write it either.
+            if ($definition->isUnloadedOn($model)) {
+                continue;
+            }
+
             if ($definition->isLocalized()) {
                 $previous = LocaleMapAccessor::original($model, $column);
 

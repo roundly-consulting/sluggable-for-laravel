@@ -6,6 +6,14 @@ All notable changes to `sluggable-for-laravel` are documented in this file. The 
 
 ## Unreleased
 
+### Fixed
+
+- Saving, `touch()`ing or restoring a model loaded without its slug column (`select('id')`) no longer
+  replaces the stored slug with a newly generated one. Sluggable now leaves a slug column the model
+  wasn't loaded with alone — plain and locale-map columns alike, and also under `regenerateOnUpdate()`,
+  `regenerateSlugs()` and `Slugs::apply()` — and no longer reads it under
+  `Model::preventAccessingMissingAttributes()`. Load the column to have it generated.
+
 ## 1.1.0 - 2026-10-05
 
 ### Changed
