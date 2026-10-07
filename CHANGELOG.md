@@ -6,6 +6,13 @@ All notable changes to `sluggable-for-laravel` are documented in this file. The 
 
 ## Unreleased
 
+## 1.1.1 - 2026-10-07
+
+### Changed
+
+- Documentation: the README states the supported databases — PostgreSQL 12+ and MySQL 8.0.23+ /
+  MariaDB 10.3.3+ (SQLite 3.38+ for tests); SQL Server is not supported.
+
 ### Fixed
 
 - Saving, `touch()`ing or restoring a model loaded without its slug column (`select('id')`) no longer
