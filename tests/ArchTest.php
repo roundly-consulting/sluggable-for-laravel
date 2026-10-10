@@ -27,7 +27,7 @@ ArchPresets::modelsGoThroughTheFacade('RoundlyConsulting\Sluggable');
 foreach (['Support\Slugger', 'Support\Truncator', 'Support\IdentifierGuard', 'Suffixes'] as $stage) {
     arch("the pure pipeline stage {$stage} stays free of the database layer")
         ->expect("RoundlyConsulting\\Sluggable\\{$stage}")
-        ->not->toUse('Illuminate\Database');
+        ->not->toUse(['Illuminate\Database', 'Illuminate\Support\Facades\DB']);
 }
 
 arch('sluggable never references translatable (the DAG points translatable → sluggable)')
