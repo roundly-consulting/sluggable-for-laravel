@@ -29,8 +29,8 @@ final class SlugIndexesCommand extends Command
             return self::FAILURE;
         }
 
-        $columns = $this->option('column');
-        $columns = is_array($columns) && $columns !== [] ? array_values(array_filter($columns, is_string(...))) : null;
+        $columns = (array) $this->option('column');
+        $columns = $columns !== [] ? array_values(array_filter($columns, is_string(...))) : null;
 
         try {
             $report = SlugIndexes::forModel($model, $columns, (bool) $this->option('dry-run'));
