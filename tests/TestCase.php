@@ -29,6 +29,15 @@ abstract class TestCase extends PackageTestCase
         return [__DIR__.'/database/migrations', SluggableServiceProvider::class];
     }
 
+    /**
+     * Migrate once per worker and schema signature, then empty the tables after each test.
+     * The migrations read only config, which the signature already covers.
+     */
+    protected function keepsMigratedSchema(): bool
+    {
+        return true;
+    }
+
     /** @return array<string, mixed> */
     protected function configBeforeBoot(): array
     {
