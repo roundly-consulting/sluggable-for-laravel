@@ -6,6 +6,8 @@ All notable changes to `sluggable-for-laravel` are documented in this file. The 
 
 ## Unreleased
 
+## 1.1.3 - 2026-10-17
+
 ### Fixed
 
 - Factories build the configured model when a host swaps it.
