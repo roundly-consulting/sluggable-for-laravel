@@ -13,6 +13,7 @@ ArchPresets::finalByDefault('RoundlyConsulting\Sluggable', [SlugHistory::class])
 ArchPresets::swappableModelsAreNotFinal([SlugHistory::class => 'sluggable.history.model']);
 ArchPresets::noLocalCryptoPrimitives('RoundlyConsulting\Sluggable');
 ArchPresets::modelsResolveThroughSeam(__DIR__.'/../src', 'Support', ['sluggable.history.model']);
+ArchPresets::factoriesResolveThroughSeam(__DIR__.'/../database/factories', __DIR__.'/../src', 'Support');
 ArchPresets::morphColumnsUseTheSeam(__DIR__.'/../database/migrations');
 
 // No alsoAllow: require holds php/ext/illuminate/roundly only.
