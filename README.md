@@ -27,7 +27,7 @@ already have.
 
 ## Installation
 
-Requires PHP 8.4 and Laravel 12 or 13. Supported databases: PostgreSQL 12+ and MySQL 8.0.23+ /
+Requires PHP 8.4 and Laravel 13. Supported databases: PostgreSQL 12+ and MySQL 8.0.23+ /
 MariaDB 10.3.3+ (SQLite 3.38+ for tests). SQL Server is not supported.
 
 ```bash
